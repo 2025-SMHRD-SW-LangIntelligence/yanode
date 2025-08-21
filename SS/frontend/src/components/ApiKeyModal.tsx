@@ -55,7 +55,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, editingKey }: ApiKeyModal
           onSave(newApi);
           handleClose();
           alert(result.message || 'API가 저장되었습니다.');
-        }, 500);
+        }, 100);
       } else {
         setValidationStatus('invalid')
         setIsLoading(false);
