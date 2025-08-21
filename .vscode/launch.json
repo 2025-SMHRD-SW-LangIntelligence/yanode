@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-SsApplication<SS>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.smhrd.ss.SsApplication",
+            "projectName": "SS",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

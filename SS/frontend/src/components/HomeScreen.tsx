@@ -174,7 +174,7 @@ export function HomeScreen({
         });
         if (!res.ok) throw new Error("API 요청 실패");
         const data = await res.json();
-        console.log(data)
+        console.log(data) 
         setDriveData(data);
       } catch (err) {
         console.error(err);
