@@ -8,6 +8,7 @@ import { ApiKeyModal } from '../settings/ApiKeyModal';
 import { ApiConnectionStatus } from '../settings/ApiConnectionStatus';
 import { HelpModal } from '../../components/common/HelpModal';
 import type { ApiKey } from '../../types';
+import { useEffect } from 'react';
 import {
   ArrowLeft,
   User,
@@ -38,10 +39,10 @@ import {
 
 // --- 소셜 로그인 아이콘 컴포넌트 (그대로 유지) ---
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px" {...props}><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" /><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" /><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.519-3.355-11.113-7.918l-6.522,5.023C9.505,39.556,16.227,44,24,44z" /><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C39.986,36.681,44,30.986,44,24C44,22.659,43.862,21.35,43.611,20.083z" /></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px" {...props}><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" /><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" /><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.519-3.355-11.113-7.918l-6.522,5.023C9.505,39.556,16.227,44,24,44z" /><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C39.986,36.681,44,30.986,44,24C44,22.659,43.862,21.35,43.611,20.083z" /></svg>
 );
 const KakaoIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24px" height="24px" {...props}><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c5.52 0 10-4.48 10-10S17.52 2 12 2zm1.06 13.44c-.4.23-1.02.5-1.72.58-.02 0-.03 0-.05.01-.13.01-.26.01-.39.01-.68 0-1.33-.12-1.9-.34-.95-.37-1.5-1.12-1.5-2.07 0-1.29 1.12-2.34 2.5-2.34.82 0 1.51.37 1.9.7l-.61.99c-.27-.26-.74-.53-1.29-.53-.69 0-1.25.45-1.25 1.15s.56 1.15 1.25 1.15c.19 0 .38-.02.56-.06l.75 1.22zM17.5 12c0 .96-.54 1.7-1.5 2.07-.57.22-1.23.34-1.9.34-.13 0-.26 0-.39-.01-.02 0-.03 0-.05-.01-.7-.08-1.32-.35-1.72-.58l.75-1.22c.18.04.37.06.56.06.69 0 1.25-.45 1.25-1.15s-.56-1.15-1.25-1.15c-.55 0-1.02.27-1.29.53l-.61-.99c.39-.33 1.08-.7 1.9-.7 1.38 0 2.5 1.05 2.5 2.34z" fill="#3C1E1E"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24px" height="24px" {...props}><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c5.52 0 10-4.48 10-10S17.52 2 12 2zm1.06 13.44c-.4.23-1.02.5-1.72.58-.02 0-.03 0-.05.01-.13.01-.26.01-.39.01-.68 0-1.33-.12-1.9-.34-.95-.37-1.5-1.12-1.5-2.07 0-1.29 1.12-2.34 2.5-2.34.82 0 1.51.37 1.9.7l-.61.99c-.27-.26-.74-.53-1.29-.53-.69 0-1.25.45-1.25 1.15s.56 1.15 1.25 1.15c.19 0 .38-.02.56-.06l.75 1.22zM17.5 12c0 .96-.54 1.7-1.5 2.07-.57.22-1.23.34-1.9.34-.13 0-.26 0-.39-.01-.02 0-.03 0-.05-.01-.7-.08-1.32-.35-1.72-.58l.75-1.22c.18.04.37.06.56.06.69 0 1.25-.45 1.25-1.15s-.56-1.15-1.25-1.15c-.55 0-1.02.27-1.29.53l-.61-.99c.39-.33 1.08-.7 1.9-.7 1.38 0 2.5 1.05 2.5 2.34z" fill="#3C1E1E" /></svg>
 );
 
 interface SettingsScreenProps {
@@ -58,25 +59,32 @@ interface SettingsScreenProps {
 export function SettingsScreen({
   onBack,
   onLogout,
-  apiKeys,
   onUpdateApiKeys,
-  onDisconnectApiKey,
-  onConnectApiKey,
   isDarkMode,
   onToggleDarkMode
 }: SettingsScreenProps) {
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security' | 'about'>('profile');
   const [profileData, setProfileData] = useState({
-    name: '김사용자',
-    email: 'user@company.com',
-    phone: '+82 10-1234-5678',
-    department: '마케팅팀',
-    position: '과장'
+    name: '-',
+    email: '-',
+    phone: '-',
+    depart: '-',
+    level: '-'
   });
   const [isEditing, setIsEditing] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [editingApiKey, setEditingApiKey] = useState<{ id: string; name: string; key: string } | null>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [apiKeys, setApiKeys] = useState<UserApi[]>([]);
+
+  interface UserApi {
+    apiIdx: number;
+    apiTitle: string;
+    apiURL: string;
+    createdDate?: string;
+    lastUsed?: string;
+    isConnected?: boolean;
+  }
 
   const tabs = [
     { id: 'profile', label: '프로필', icon: <User className="w-4 h-4" /> },
@@ -85,9 +93,91 @@ export function SettingsScreen({
     { id: 'about', label: '정보', icon: <HelpCircle className="w-4 h-4" /> }
   ];
 
-  const handleSaveProfile = () => {
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("http://localhost:8090/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        throw new Error("로그아웃 실패");
+      }
+
+      onLogout();
+    } catch (e) {
+      console.error("로그아웃 중 오류 발생", e);
+      alert("로그아웃 실패. 다시 시도해주세요.");
+    }
+  };
+
+  useEffect(() => {
+      const fetchUser = async () => {
+        try {
+          const res = await fetch('http://localhost:8090/api/auth/me', {
+            method: 'GET',
+            credentials: 'include'
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setProfileData({
+              name: data.name,
+              email: data.email,
+              phone: data.phone || '',
+              depart: data.depart || '',
+              level: data.level || ''
+            });
+          }
+        } catch (err) {
+          console.error('유저 정보 불러오기 실패', err);
+        }
+      };
+  
+      fetchUser();
+    }, []);
+  
+    useEffect(() => {
+      fetchUserApis();
+    }, []);
+  
+    const fetchUserApis = async () => {
+      try {
+        const res = await fetch('http://localhost:8090/api/auth/myApis', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setApiKeys(data);
+        } else {
+          console.error('API 키 로드 실패', data);
+        }
+      } catch (err) {
+        console.error('API 키 불러오기 오류', err);
+      }
+    };
+
+  const handleSaveProfile = async () => {
     setIsEditing(false);
-    // 프로필 저장 로직
+    try {
+      const res = await fetch('http://localhost:8090/api/auth/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(profileData),
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        alert(result.message || '프로필이 수정되었습니다.');
+      } else {
+        alert(result.message || '수정 실패');
+      }
+    } catch (err) {
+      console.error('프로필 수정 오류', err);
+    }
   };
 
   const handleAddApiKey = () => {
@@ -96,43 +186,83 @@ export function SettingsScreen({
   };
 
   const handleEditApiKey = (apiKey: typeof apiKeys[0]) => {
-    setEditingApiKey(apiKey);
+    setEditingApiKey(null);
     setShowApiKeyModal(true);
   };
 
-  const handleSaveApiKey = (key: string, name: string) => {
-    if (editingApiKey) {
-      // 기존 키 수정
-      const updatedApiKeys = apiKeys.map(item =>
-        item.id === editingApiKey.id
-          ? { ...item, name, key, maskedKey: key.substring(0, 3) + '***************' + key.slice(-4) }
-          : item
-      );
-      onUpdateApiKeys(updatedApiKeys);
-    } else {
-      // 새 키 추가
-      const newKey = {
-        id: Date.now().toString(),
-        name,
-        key,
-        maskedKey: key.substring(0, 3) + '***************' + key.slice(-4),
-        created: new Date().toISOString().split('T')[0],
-        lastUsed: '방금 전',
-        isConnected: true
-      };
-      onUpdateApiKeys([...apiKeys, newKey]);
-    }
-    setShowApiKeyModal(false);
-    setEditingApiKey(null);
+  const handleSaveApiKey = async (newApi: UserApi) => {
+    setApiKeys((prev) => [...prev, newApi]);
   };
 
-  const handleDeleteApiKey = (id: string) => {
-    onUpdateApiKeys(apiKeys.filter(key => key.id !== id));
+  const handleDeleteApiKey = async (apiURL: string) => {
+    if (!confirm('정말 이 API 키를 삭제하시겠습니까?')) return;
+
+    try {
+      const res = await fetch(`http://localhost:8090/api/auth/deleteApi?apiURL=${encodeURIComponent(apiURL)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        // 프론트 상태에서 삭제
+        setApiKeys((prev) => prev.filter((api) => api.apiURL !== apiURL));
+        alert(result.message || 'API 키가 삭제되었습니다.');
+      } else {
+        alert(result.message || 'API 키 삭제 실패');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('API 키 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   const handleCopyApiKey = (key: string) => {
     navigator.clipboard.writeText(key);
     // 토스트 알림을 추가할 수 있음
+  };
+
+  const onConnectApiKey = async (apiURL: string) => {
+    try {
+      const encodeToken = encodeURIComponent(apiURL);
+      const res = await fetch(`http://localhost:8090/api/dooray/driveConnect?apiURL=${encodeToken}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!res.ok) throw new Error('Dooray API 연결 실패');
+
+      const drives = await res.json();
+      console.log(drives);
+
+      setApiKeys(prev =>
+        prev.map(api => api.apiURL === apiURL ? { ...api, isConnected: true } : api)
+      );
+      alert("연결 성공!");
+    } catch (err) {
+      alert('연결 실패!');
+    }
+  };
+
+  const onDisconnectApiKey = async (apiURL: string) => {
+    try {
+      await fetch(`http://localhost:8090/api/dooray/driveDisconnect?apiURL=${apiURL}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+      setApiKeys(prev =>
+        prev.map(api => api.apiURL === apiURL ? { ...api, isConnected: false } : api)
+      );
+    } catch (err) {
+      console.log("실패")
+    }
   };
 
   return (
@@ -176,8 +306,8 @@ export function SettingsScreen({
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all ${activeTab === tab.id
-                        ? 'bg-gradient-primary text-white shadow-lg'
-                        : 'text-foreground hover:bg-accent'
+                      ? 'bg-gradient-primary text-white shadow-lg'
+                      : 'text-foreground hover:bg-accent'
                       }`}
                   >
                     {tab.icon}
@@ -199,8 +329,8 @@ export function SettingsScreen({
                     <Button
                       onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
                       className={`${isEditing
-                          ? 'bg-gradient-primary btn-glow text-white'
-                          : 'glass hover:bg-accent text-foreground'
+                        ? 'bg-gradient-primary btn-glow text-white'
+                        : 'glass hover:bg-accent text-foreground'
                         } font-medium rounded-xl h-10 px-4 border-0`}
                     >
                       {isEditing ? (
@@ -234,7 +364,7 @@ export function SettingsScreen({
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-foreground">{profileData.name}</h3>
-                      <p className="text-muted-foreground">{profileData.department} • {profileData.position}</p>
+                      <p className="text-muted-foreground">{profileData.depart} • {profileData.level}</p>
                     </div>
                   </div>
 
@@ -253,7 +383,7 @@ export function SettingsScreen({
                     <div className="space-y-2">
                       <Label className="text-foreground">부서</Label>
                       <Input
-                        value={profileData.department}
+                        value={profileData.depart}
                         onChange={(e) => setProfileData(prev => ({ ...prev, department: e.target.value }))}
                         disabled={!isEditing}
                         className="glass border-border bg-input h-12"
@@ -289,7 +419,7 @@ export function SettingsScreen({
                     <div className="space-y-2 md:col-span-2">
                       <Label className="text-foreground">직급</Label>
                       <Input
-                        value={profileData.position}
+                        value={profileData.level}
                         onChange={(e) => setProfileData(prev => ({ ...prev, position: e.target.value }))}
                         disabled={!isEditing}
                         className="glass border-border bg-input h-12"
@@ -303,7 +433,7 @@ export function SettingsScreen({
                     <div className="space-y-3">
                       {apiKeys.length > 0 ? (
                         apiKeys.slice(0, 2).map(key => (
-                          <div key={key.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
+                          <div key={key.apiIdx} className="flex items-center justify-between p-3 bg-accent rounded-lg">
                             <div className="flex items-center space-x-3">
                               <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
                                 <Key className="w-4 h-4 text-white" />
@@ -416,8 +546,8 @@ export function SettingsScreen({
                       </div>
 
                       <div className="space-y-3">
-                        {apiKeys.map((apiKey) => (
-                          <div key={apiKey.id} className="glass p-4 rounded-xl border border-border card-hover">
+                        {apiKeys.map((api) => (
+                          <div key={api.apiURL} className="glass p-4 rounded-xl border border-border card-hover">
                             <div className="flex items-center justify-between">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center space-x-3 mb-2">
@@ -425,19 +555,19 @@ export function SettingsScreen({
                                     <Key className="w-4 h-4 text-white" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-foreground">{apiKey.name}</p>
-                                    <p className="text-sm text-muted-foreground font-mono">{apiKey.maskedKey}</p>
+                                    <p className="font-medium text-foreground">{api.apiTitle}</p>
+                                    <p className="text-sm text-muted-foreground font-mono">{api.apiURL ? `${api.apiURL.slice(0, 3)}${'*'.repeat(api.apiURL.length - 3)}` : ''}</p>
                                   </div>
                                   <div className="flex items-center space-x-2">
-                                    <div className={`w-2 h-2 rounded-full ${apiKey.isConnected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                                    <span className={`text-xs font-medium ${apiKey.isConnected ? 'text-green-600' : 'text-gray-500'}`}>
-                                      {apiKey.isConnected ? '연결됨' : '연결 안됨'}
+                                    <div className={`w-2 h-2 rounded-full ${api.isConnected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                                    <span className={`text-xs font-medium ${api.isConnected ? 'text-green-600' : 'text-gray-500'}`}>
+                                      {api.isConnected ? '연결됨' : '연결 안됨'}
                                     </span>
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                                  <span>생성: {apiKey.created}</span>
-                                  <span>마지막 사용: {apiKey.lastUsed}</span>
+                                  <span>생성: {api.createdDate ? new Date(api.createdDate).toLocaleString() : '-'}</span>
+                                  <span>마지막 사용: {api.lastUsed}</span>
                                 </div>
                               </div>
 
@@ -445,18 +575,18 @@ export function SettingsScreen({
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => apiKey.isConnected ? onDisconnectApiKey(apiKey.id) : onConnectApiKey(apiKey.id)}
-                                  className={`w-8 h-8 p-0 rounded-lg ${apiKey.isConnected
-                                      ? 'text-red-500 hover:text-red-700 hover:bg-red-100/20'
-                                      : 'text-green-500 hover:text-green-700 hover:bg-green-100/20'
+                                  onClick={() => api.isConnected ? onDisconnectApiKey(api.apiURL) : onConnectApiKey(api.apiURL)}
+                                  className={`w-8 h-8 p-0 rounded-lg ${api.isConnected
+                                    ? 'text-red-500 hover:text-red-700 hover:bg-red-100/20'
+                                    : 'text-green-500 hover:text-green-700 hover:bg-green-100/20'
                                     }`}
                                 >
-                                  {apiKey.isConnected ? <Unplug className="w-4 h-4" /> : <Plug className="w-4 h-4" />}
+                                  {api.isConnected ? <Unplug className="w-4 h-4" /> : <Plug className="w-4 h-4" />}
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleCopyApiKey(apiKey.key)}
+                                  onClick={() => handleCopyApiKey(api.apiURL)}
                                   className="w-8 h-8 p-0 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg"
                                 >
                                   <Copy className="w-4 h-4" />
@@ -464,7 +594,7 @@ export function SettingsScreen({
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleEditApiKey(apiKey)}
+                                  onClick={() => handleEditApiKey(api)}
                                   className="w-8 h-8 p-0 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg"
                                 >
                                   <Edit className="w-4 h-4" />
@@ -472,7 +602,7 @@ export function SettingsScreen({
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleDeleteApiKey(apiKey.id)}
+                                  onClick={() => handleDeleteApiKey(api.apiURL)}
                                   className="w-8 h-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-100/20 rounded-lg"
                                 >
                                   <Trash2 className="w-4 h-4" />
