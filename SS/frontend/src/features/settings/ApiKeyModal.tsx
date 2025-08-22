@@ -26,21 +26,46 @@ export function ApiKeyModal({ isOpen, onClose, onSave, editingKey }: ApiKeyModal
     setIsLoading(true);
     setValidationStatus('validating');
 
-    // API 키 검증 시뮬레이션
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const res = await fetch('http://localhost:8090/api/auth/addApi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          apiTitle: keyName,
+          apiURL: apiKey
+        }),
+      });
 
-    // 90% 확률로 성공하도록 시뮬레이션
-    const isValid = Math.random() > 0.1;
-    
-    if (isValid) {
-      setValidationStatus('valid');
-      setTimeout(() => {
-        onSave(apiKey, keyName);
-        handleClose();
-      }, 500);
-    } else {
-      setValidationStatus('invalid');
+      const result = await res.json();
+
+      if (res.ok) {
+        setValidationStatus('valid');
+
+        const newApi = {
+          id: crypto.randomUUID,
+          apiTitle: keyName,
+          apiURL: apiKey,
+          createdDate: result.createdDate,
+          lastUsed: null,
+          isConnected: false
+        };
+
+        setTimeout(() => {
+          onSave(newApi);
+          handleClose();
+          alert(result.message || 'API가 저장되었습니다.');
+        }, 100);
+      } else {
+        setValidationStatus('invalid')
+        setIsLoading(false);
+        alert(result.message || 'API 저장 실패');
+      }
+    } catch (err) {
+      console.error(err);
       setIsLoading(false);
+      setValidationStatus('invalid')
+      alert('API 저장 중 오류가 발생했습니다.');
     }
   };
 
@@ -61,11 +86,11 @@ export function ApiKeyModal({ isOpen, onClose, onSave, editingKey }: ApiKeyModal
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 배경 오버레이 */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={handleClose}
       />
-      
+
       {/* 모달 콘텐츠 */}
       <div className="relative w-full max-w-md mx-4 glass-strong border border-white/20 rounded-2xl shadow-2xl animate-fade-in">
         {/* 헤더 */}
@@ -94,7 +119,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, editingKey }: ApiKeyModal
         <div className="p-6 space-y-6">
           <div className="text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Dooray 드라이브에서 파일을 검색하려면 API 키가 필요합니다. 
+              Dooray 드라이브에서 파일을 검색하려면 API 키가 필요합니다.
               키는 안전하게 암호화되어 저장됩니다.
             </p>
           </div>
@@ -119,10 +144,9 @@ export function ApiKeyModal({ isOpen, onClose, onSave, editingKey }: ApiKeyModal
                 value={apiKey}
                 onChange={(e) => handleKeyChange(e.target.value)}
                 placeholder="Dooray API 키를 입력하세요"
-                className={`glass border-white/20 bg-white/50 dark:bg-gray-800/50 h-12 pr-20 ${
-                  validationStatus === 'valid' ? 'border-green-300 dark:border-green-600' :
-                  validationStatus === 'invalid' ? 'border-red-300 dark:border-red-600' : ''
-                }`}
+                className={`glass border-white/20 bg-white/50 dark:bg-gray-800/50 h-12 pr-20 ${validationStatus === 'valid' ? 'border-green-300 dark:border-green-600' :
+                    validationStatus === 'invalid' ? 'border-red-300 dark:border-red-600' : ''
+                  }`}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
                 {validationStatus === 'validating' && (
@@ -147,7 +171,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, editingKey }: ApiKeyModal
                 </button>
               </div>
             </div>
-            
+
             {validationStatus === 'invalid' && (
               <p className="text-sm text-red-600 dark:text-red-400 flex items-center space-x-1">
                 <AlertCircle className="w-3 h-3" />

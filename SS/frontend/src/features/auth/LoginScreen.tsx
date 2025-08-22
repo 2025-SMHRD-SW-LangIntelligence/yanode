@@ -18,7 +18,8 @@ export function LoginScreen({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [rememberMe, setRememberMe] = useState(false);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -29,16 +30,15 @@ export function LoginScreen({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
+        credentials : "include"
       });
 
       if (!res.ok) {
-        console.log(res.ok);
         throw new Error("로그인 실패");
       }
 
       const data = await res.json();
-      console.log("로그인 성공:", data);
 
       onLogin();
     } catch (error) {
@@ -122,6 +122,8 @@ export function LoginScreen({
               <label className="flex items-center">
                 <input
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="w-4 h-4 rounded border-border text-primary focus:ring-primary/30 mr-2"
                 />
                 <span className="text-muted-foreground">
@@ -166,6 +168,7 @@ export function LoginScreen({
               <Button
                 type="button"
                 variant="outline"
+                onClick={() => window.location.href = "http://localhost:8090/oauth2/authorization/google"}
                 className="glass border-border bg-card h-11 font-medium hover:bg-accent transition-all text-foreground"
               >
                 <svg
