@@ -6,12 +6,21 @@ export interface FileItem {
   id: string;
   name: string;
   type: 'pdf' | 'word' | 'excel' | 'powerpoint' | string;
-  size: string;
+  size: number;
   modified: string;    // 예: '방금 전', '2시간 전'
   modifiedBy: string;  // 예: '김마케팅'
   path: string;
   icon?: string;       // 이모지/아이콘 (옵션)
   isFavorite?: boolean;
+}
+
+export interface DriveFolder {
+  id: string;
+  name: string;
+  driveId?: string;
+  isExpanded?: boolean;
+  files: FileItem[];
+  subFolders?: DriveFolder[];
 }
 
 export interface ChatMessage {
@@ -23,11 +32,12 @@ export interface ChatMessage {
 }
 
 export interface ApiKey {
-  id: string;
-  name: string;
-  maskedKey: string;
-  created: string;     // 'YYYY-MM-DD'
-  lastUsed: string;    // 예: '방금 전'
+  apiIdx: number;
+  userIdx: number;
+  apiTitle: string;
+  apiURL: string;
+  createdDate: string;
+  lastUsed: string;
   isConnected: boolean;
 }
 

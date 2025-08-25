@@ -12,11 +12,18 @@ public class UserService {
 	UserRepository userRepository;
 	
 	public Boolean check(UserEntity entity) {
-		return userRepository.existsByEmail(entity.getEmail());
+		return userRepository.existsByEmailAndOAuth(entity.getEmail(), entity.getOAuth());
+	}
+	
+	public UserEntity userInfo(UserEntity entity) {
+		return userRepository.findByEmailAndOAuth(entity.getEmail(), entity.getOAuth());
+	}
+	public UserEntity userInfo(String email, Integer i) {
+		return userRepository.findByEmailAndOAuth(email, i);
 	}
 	
 	public String register(UserEntity entity) {
-		if (userRepository.existsByEmail(entity.getEmail())) {
+		if (userRepository.existsByEmailAndOAuth(entity.getEmail(), entity.getOAuth())) {
 			return "fail";
 		}
 		UserEntity e = userRepository.save(entity);
@@ -30,4 +37,10 @@ public class UserService {
 	public UserEntity login(UserEntity entity) {		
 		return userRepository.findAllByEmailAndPassword(entity.getEmail(), entity.getPassword());
 	}
+
+	public UserEntity save(UserEntity entity) {
+	    return userRepository.save(entity);
+	}
+
+	
 }

@@ -8,9 +8,7 @@ target/
 .apt_generated
 .classpath
 .factorypath
-.project
 .settings
-.springBeans
 .sts4-cache
 
 ### IntelliJ IDEA ###
@@ -77,9 +75,6 @@ local.properties
 # TeXlipse plugin
 .texlipse
 
-# STS (Spring Tool Suite)
-.springBeans
-
 # Code Recommenders
 .recommenders/
 
@@ -90,13 +85,6 @@ local.properties
 .cache-main
 .scala_dependencies
 .worksheet
-
-### Eclipse Patch ###
-# Eclipse Core
-.project
-
-# JDT-specific (Eclipse Java Development Tools)
-.classpath
 
 # Annotation Processing
 .apt_generated
