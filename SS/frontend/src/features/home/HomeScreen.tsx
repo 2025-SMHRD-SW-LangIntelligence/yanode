@@ -162,11 +162,6 @@ export function HomeScreen({
 
                     <div className="p-2">
                       <button
-                        onClick={handleDisconnectApi}
-                        className="w-full flex items-center space-x-2 p-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-all">
-                        <span>모든 API 연결해제</span>
-                      </button>
-                      <button
                         onClick={() => {
                           setShowApiDropdown(false);
                           onOpenSettings();

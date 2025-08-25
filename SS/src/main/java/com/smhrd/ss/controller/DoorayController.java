@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import com.smhrd.ss.config.SecurityConfig;
 import com.smhrd.ss.entity.UserApiEntity;
 import com.smhrd.ss.entity.UserEntity;
 import com.smhrd.ss.service.DoorayService;
@@ -25,22 +26,31 @@ import jakarta.servlet.http.HttpSession;
 @RequestMapping("/api/dooray")
 public class DoorayController {
 
+    private final SecurityConfig securityConfig;
+
 	@Autowired
 	private DoorayService doorayService;
 
 	@Autowired
 	private UserApiService userApiService;
 
+    DoorayController(SecurityConfig securityConfig) {
+        this.securityConfig = securityConfig;
+    }
+
 	@GetMapping("/driveConnect")
-	public ResponseEntity<?> driveConnect(@RequestParam("apiURL") String apiToken, HttpSession session) {
+	public ResponseEntity<?> driveConnect(@RequestParam("apiIdx") Long apiIdx, HttpSession session) {
 		UserEntity user = (UserEntity) session.getAttribute("user");
 		if (user == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
 		}
-		List<Map<String, Object>> drives = doorayService.getFullDrive(apiToken	);
+		
+		Optional<UserApiEntity> api = userApiService.getApiToken(apiIdx);
+		String apiToken = api.get().getApiURL();
+		List<Map<String, Object>> drives = doorayService.getFullDrive(apiToken);
 
 		if (drives != null) {
-			userApiService.connectApi(apiToken, user.getUserIdx());
+			userApiService.connectApi(apiIdx);
 			return ResponseEntity.ok(drives);
 		} else {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Dooray API 연결 실패");
@@ -48,9 +58,12 @@ public class DoorayController {
 	}
 
 	@GetMapping("/driveDisconnect")
-	public Boolean driveDisconnect(@RequestParam("apiURL") String apiToken, HttpSession session) {
+	public Boolean driveDisconnect(@RequestParam("apiIdx") Long apiIdx, HttpSession session) {
 		UserEntity user = (UserEntity) session.getAttribute("user");
-		Boolean result = userApiService.disConnectApi(apiToken, user.getUserIdx());
+		if (user == null) {
+			return false;
+		}
+		Boolean result = userApiService.disConnectApi(apiIdx);
 
 		return result;
 	}

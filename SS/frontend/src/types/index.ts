@@ -6,7 +6,7 @@ export interface FileItem {
   id: string;
   name: string;
   type: 'pdf' | 'word' | 'excel' | 'powerpoint' | string;
-  size: string;
+  size: number;
   modified: string;    // 예: '방금 전', '2시간 전'
   modifiedBy: string;  // 예: '김마케팅'
   path: string;

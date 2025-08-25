@@ -64,11 +64,8 @@ export default function App() {
         const data = await res.json();
         if (res.ok) {
           setApiKeys(data);
-        } else {
-          console.error('API 키 로드 실패', data);
         }
-      } catch (err) {
-        console.error('API 키 불러오기 오류', err);
+      } catch (e) {
       }
     };
 

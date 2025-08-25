@@ -214,10 +214,9 @@ export function SettingsScreen({
     }
   };
 
-  const onConnectApiKey = async (apiURL: string) => {
+  const onConnectApiKey = async (apiIdx: number) => {
     try {
-      const encodeToken = encodeURIComponent(apiURL);
-      const res = await fetch(`http://localhost:8090/api/dooray/driveConnect?apiURL=${encodeToken}`, {
+      const res = await fetch(`http://localhost:8090/api/dooray/driveConnect?apiIdx=${apiIdx}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -231,7 +230,7 @@ export function SettingsScreen({
       console.log(drives);
 
       setApiKeys(prev =>
-        prev.map(api => api.apiURL === apiURL ? { ...api, isConnected: true } : api)
+        prev.map(api => api.apiIdx === apiIdx ? { ...api, isConnected: true } : api)
       );
       alert("연결 성공!");
     } catch (err) {
@@ -239,9 +238,10 @@ export function SettingsScreen({
     }
   };
 
-  const onDisconnectApiKey = async (apiURL: string) => {
+  const onDisconnectApiKey = async (apiIdx: number) => {
+    if (!confirm('연결 해제 하시겠습니까?')) return;
     try {
-      await fetch(`http://localhost:8090/api/dooray/driveDisconnect?apiURL=${apiURL}`, {
+      await fetch(`http://localhost:8090/api/dooray/driveDisconnect?apiIdx=${apiIdx}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -249,7 +249,7 @@ export function SettingsScreen({
         credentials: 'include'
       });
       setApiKeys(prev =>
-        prev.map(api => api.apiURL === apiURL ? { ...api, isConnected: false } : api)
+        prev.map(api => api.apiIdx === apiIdx ? { ...api, isConnected: false } : api)
       );
     } catch (err) {
       console.log("실패")
@@ -375,7 +375,7 @@ export function SettingsScreen({
                       <Label className="text-foreground">부서</Label>
                       <Input
                         value={profileData.depart}
-                        onChange={(e) => setProfileData(prev => ({ ...prev, department: e.target.value }))}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, depart: e.target.value }))}
                         disabled={!isEditing}
                         className="glass border-border bg-input h-12"
                       />
@@ -411,7 +411,7 @@ export function SettingsScreen({
                       <Label className="text-foreground">직급</Label>
                       <Input
                         value={profileData.level}
-                        onChange={(e) => setProfileData(prev => ({ ...prev, position: e.target.value }))}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, level: e.target.value }))}
                         disabled={!isEditing}
                         className="glass border-border bg-input h-12"
                       />
@@ -566,7 +566,7 @@ export function SettingsScreen({
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => api.isConnected ? onDisconnectApiKey(api.apiURL) : onConnectApiKey(api.apiURL)}
+                                  onClick={() => api.isConnected ? onDisconnectApiKey(api.apiIdx) : onConnectApiKey(api.apiIdx)}
                                   className={`w-8 h-8 p-0 rounded-lg ${api.isConnected
                                     ? 'text-red-500 hover:text-red-700 hover:bg-red-100/20'
                                     : 'text-green-500 hover:text-green-700 hover:bg-green-100/20'
@@ -687,7 +687,7 @@ export function SettingsScreen({
                           </div>
                         </div>
                         <Button
-                          onClick={onLogout}
+                          onClick={handleLogout}
                           variant="destructive"
                           className="font-medium rounded-xl px-4 h-10 border-0"
                         >

@@ -90,6 +90,7 @@ public class UserController {
 		if (user != null) {
 			return ResponseEntity.ok(user);
 		} else {
+			session.invalidate();
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 					.build();
 		}
@@ -128,6 +129,10 @@ public class UserController {
 	    return ResponseEntity.ok(Collections.singletonMap("message", "프로필이 성공적으로 수정되었습니다."));
 	}
 	
+//	@PostMapping("/chgPw")
+//	public void changePassword(HttpSession session) {
+//		
+//	}
 	
 	// 로그아웃
     @PostMapping("/logout")
