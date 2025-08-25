@@ -76,11 +76,4 @@ public class UserApiController {
         	return Map.of("message", "API 키를 찾을 수 없습니다.");
         }
     }
-    
-    @PostMapping("/coonectApi")
-    public ResponseEntity<?> connectApi(@RequestParam String apiURL, HttpSession session) {
-    	UserEntity user = (UserEntity) session.getAttribute("user");
-    	userApiService.connectApi(apiURL, user.getUserIdx());
-    	return ResponseEntity.ok("연결 완료");
-    }
 }
