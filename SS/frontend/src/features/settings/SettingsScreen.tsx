@@ -9,6 +9,7 @@ import { ApiConnectionStatus } from '../settings/ApiConnectionStatus';
 import { HelpModal } from '../../components/common/HelpModal';
 import type { ApiKey } from '../../types';
 import { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   User,
@@ -49,11 +50,13 @@ interface SettingsScreenProps {
   onBack: () => void;
   onLogout: () => void;
   apiKeys: ApiKey[];
+  connectedKeys: ApiKey[];
   onUpdateApiKeys: (newApiKeys: ApiKey[]) => void;
   onDisconnectApiKey: (apiKeyId: string) => void;
   onConnectApiKey: (apiKeyId: string) => void;
   isDarkMode: boolean;
   onToggleDarkMode: (value: boolean) => void;
+  onApiKeysChange?: (newApiKeys: ApiKey[]) => void;
 }
 
 export function SettingsScreen({
@@ -61,7 +64,8 @@ export function SettingsScreen({
   onLogout,
   onUpdateApiKeys,
   isDarkMode,
-  onToggleDarkMode
+  onToggleDarkMode,
+  onApiKeysChange
 }: SettingsScreenProps) {
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security' | 'about'>('profile');
   const [profileData, setProfileData] = useState({
@@ -75,16 +79,9 @@ export function SettingsScreen({
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [editingApiKey, setEditingApiKey] = useState<{ id: string; name: string; key: string } | null>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
-  const [apiKeys, setApiKeys] = useState<UserApi[]>([]);
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
 
-  interface UserApi {
-    apiIdx: number;
-    apiTitle: string;
-    apiURL: string;
-    createdDate?: string;
-    lastUsed?: string;
-    isConnected?: boolean;
-  }
+  const navigate = useNavigate();
 
   const tabs = [
     { id: 'profile', label: '프로필', icon: <User className="w-4 h-4" /> },
@@ -112,34 +109,31 @@ export function SettingsScreen({
   };
 
   useEffect(() => {
-      const fetchUser = async () => {
-        try {
-          const res = await fetch('http://localhost:8090/api/auth/me', {
-            method: 'GET',
-            credentials: 'include'
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('http://localhost:8090/api/auth/me', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setProfileData({
+            name: data.name,
+            email: data.email,
+            phone: data.phone || '',
+            depart: data.depart || '',
+            level: data.level || ''
           });
-          if (res.ok) {
-            const data = await res.json();
-            setProfileData({
-              name: data.name,
-              email: data.email,
-              phone: data.phone || '',
-              depart: data.depart || '',
-              level: data.level || ''
-            });
-          }
-        } catch (err) {
-          console.error('유저 정보 불러오기 실패', err);
         }
-      };
-  
-      fetchUser();
-    }, []);
-  
-    useEffect(() => {
-      fetchUserApis();
-    }, []);
-  
+      } catch (err) {
+        console.error('유저 정보 불러오기 실패', err);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
     const fetchUserApis = async () => {
       try {
         const res = await fetch('http://localhost:8090/api/auth/myApis', {
@@ -149,13 +143,20 @@ export function SettingsScreen({
         const data = await res.json();
         if (res.ok) {
           setApiKeys(data);
+          onApiKeysChange?.(data);
         } else {
           console.error('API 키 로드 실패', data);
+          navigate('/login');
         }
       } catch (err) {
         console.error('API 키 불러오기 오류', err);
       }
     };
+
+    fetchUserApis();
+  }, []);
+
+
 
   const handleSaveProfile = async () => {
     setIsEditing(false);
@@ -185,20 +186,15 @@ export function SettingsScreen({
     setShowApiKeyModal(true);
   };
 
-  const handleEditApiKey = (apiKey: typeof apiKeys[0]) => {
-    setEditingApiKey(null);
-    setShowApiKeyModal(true);
-  };
-
-  const handleSaveApiKey = async (newApi: UserApi) => {
+  const handleSaveApiKey = async (newApi: ApiKey) => {
     setApiKeys((prev) => [...prev, newApi]);
   };
 
-  const handleDeleteApiKey = async (apiURL: string) => {
+  const handleDeleteApiKey = async (apiIdx: number) => {
     if (!confirm('정말 이 API 키를 삭제하시겠습니까?')) return;
 
     try {
-      const res = await fetch(`http://localhost:8090/api/auth/deleteApi?apiURL=${encodeURIComponent(apiURL)}`, {
+      const res = await fetch(`http://localhost:8090/api/auth/deleteApi?apiIdx=${apiIdx}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -207,7 +203,7 @@ export function SettingsScreen({
 
       if (res.ok) {
         // 프론트 상태에서 삭제
-        setApiKeys((prev) => prev.filter((api) => api.apiURL !== apiURL));
+        setApiKeys((prev) => prev.filter((api) => api.apiIdx !== apiIdx));
         alert(result.message || 'API 키가 삭제되었습니다.');
       } else {
         alert(result.message || 'API 키 삭제 실패');
@@ -216,11 +212,6 @@ export function SettingsScreen({
       console.error(err);
       alert('API 키 삭제 중 오류가 발생했습니다.');
     }
-  };
-
-  const handleCopyApiKey = (key: string) => {
-    navigator.clipboard.writeText(key);
-    // 토스트 알림을 추가할 수 있음
   };
 
   const onConnectApiKey = async (apiURL: string) => {
@@ -320,7 +311,7 @@ export function SettingsScreen({
 
           {/* 메인 콘텐츠 */}
           <div className="flex-1">
-            <Card className="glass-strong border border-border p-8 min-h-[600px]">
+            <Card className="glass-strong border border-border p-8">
               {/* 프로필 탭 */}
               {activeTab === 'profile' && (
                 <div className="space-y-8 animate-fade-in">
@@ -439,7 +430,7 @@ export function SettingsScreen({
                                 <Key className="w-4 h-4 text-white" />
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-foreground">{key.name}</p>
+                                <p className="text-sm font-medium text-foreground">{key.apiTitle}</p>
                                 <div className="flex items-center space-x-2 text-xs">
                                   <div className={`w-2 h-2 rounded-full ${key.isConnected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
                                   <span className={`font-medium ${key.isConnected ? 'text-green-600' : 'text-gray-500'}`}>
@@ -546,8 +537,8 @@ export function SettingsScreen({
                       </div>
 
                       <div className="space-y-3">
-                        {apiKeys.map((api) => (
-                          <div key={api.apiURL} className="glass p-4 rounded-xl border border-border card-hover">
+                        {apiKeys.map((api, idx) => (
+                          <div key={`${api.apiURL}-${idx}`} className="glass p-4 rounded-xl border border-border card-hover">
                             <div className="flex items-center justify-between">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center space-x-3 mb-2">
@@ -586,23 +577,7 @@ export function SettingsScreen({
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleCopyApiKey(api.apiURL)}
-                                  className="w-8 h-8 p-0 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg"
-                                >
-                                  <Copy className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleEditApiKey(api)}
-                                  className="w-8 h-8 p-0 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteApiKey(api.apiURL)}
+                                  onClick={() => handleDeleteApiKey(api.apiIdx)}
                                   className="w-8 h-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-100/20 rounded-lg"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -626,25 +601,6 @@ export function SettingsScreen({
                             </Button>
                           </div>
                         )}
-                      </div>
-                    </div>
-
-                    {/* API 연결 상태 */}
-                    <ApiConnectionStatus apiKeys={apiKeys} />
-
-                    {/* 활성 세션 */}
-                    <div className="glass p-6 rounded-xl border border-border">
-                      <h3 className="font-medium text-foreground mb-4">활성 세션</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-accent rounded-lg">
-                          <div>
-                            <p className="text-sm font-medium text-foreground">Chrome - Windows</p>
-                            <p className="text-xs text-muted-foreground">현재 세션 • 서울, 대한민국</p>
-                          </div>
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                            활성
-                          </span>
-                        </div>
                       </div>
                     </div>
                   </div>

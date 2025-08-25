@@ -4,24 +4,14 @@ import type { FileItem } from '../../../types';
 export interface DriveFolder {
   id: string;
   name: string;
+  driveId?: string;
   isExpanded: boolean;
   files: FileItem[];
-  subFolders?: DriveFolder[];
+  folders?: DriveFolder[];
   icon?: string;
 }
 
 type CheckState = 'checked' | 'indeterminate' | 'unchecked';
-
-const mockApiFolders = [
-  { id: 'reports', name: '보고서', icon: '📊', subFolders: [{ id: 'quarterly', name: '분기별 보고서', icon: '📈' }] },
-  { id: 'marketing', name: '마케팅', icon: '🚀', subFolders: [{ id: 'strategy', name: '전략 문서', icon: '📋' }] },
-  { id: 'projects', name: '프로젝트', icon: '📁' },
-  { id: 'hr', name: '인사관리', icon: '👥' },
-  { id: 'design', name: '디자인', icon: '🎨' },
-  { id: 'templates', name: '템플릿', icon: '📝' },
-  { id: 'analysis', name: '분석', icon: '📈' },
-  { id: 'products', name: '제품', icon: '🔧' }
-];
 
 export function useDriveFolders(apiToken: string | undefined, initialFiles: FileItem[]) {
   const [driveFolders, setDriveFolders] = useState<DriveFolder[]>([]);
@@ -30,22 +20,58 @@ export function useDriveFolders(apiToken: string | undefined, initialFiles: File
     try { return JSON.parse(localStorage.getItem('drive:selected') || '[]'); } catch { return []; }
   });
 
+  // API 불러오기 + 변환
   useEffect(() => {
-    const mapped: DriveFolder[] = mockApiFolders.map(folder => ({
-      ...folder,
-      isExpanded: folder.id === 'reports',
-      files: initialFiles.filter(file => file.path.includes(`/${folder.id}/`)),
-      subFolders: folder.subFolders?.map(sub => ({
-        ...sub,
-        isExpanded: false,
-        files: initialFiles.filter(file =>
-          file.path.includes(`/${folder.id}/`) &&
-          file.name.toLowerCase().includes(sub.name.substring(0, 2))
-        )
-      }))
-    }));
-    setDriveFolders(mapped);
-  }, [apiToken, initialFiles]);
+    if (!apiToken) return;
+
+    const fetchDriveFolders = async () => {
+      try {
+        const res = await fetch("http://localhost:8090/api/dooray/driveLoading", {
+          method: "POST",
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          console.error("드라이브 불러오기 실패", await res.text());
+          return;
+        }
+
+        const data = await res.json();
+        console.log(data)
+
+        const transformFolder = (folder: any, driveId?: string): DriveFolder => ({
+          id: folder.id,
+          name: folder.name,
+          driveId,
+          isExpanded: false,
+          files: (folder.files || []).map((f: any) => ({
+            id: f.id,
+            name: f.name,
+            type: f.type,
+            icon: "📄",
+            modified: f.modifiedAt || f.createdAt,
+          })),
+          folders: (folder.subFolders || []).map((sub: any) => transformFolder(sub, driveId)),
+        });
+
+        const roots: DriveFolder[] = data.map((apiDrive: any) => ({
+          id: `root-${apiDrive.apiIdx || apiDrive.apiTitle}`,
+          name: apiDrive.apiTitle,
+          isExpanded: true,
+          files: [], // 루트 파일 없으면 빈 배열
+          folders: apiDrive.drives.flatMap((drive: any) => 
+            (drive.root.folders || []).map((f: any) => transformFolder(f, drive.id))
+          ),
+        }));
+
+        setDriveFolders(roots);
+      } catch (err) {
+        console.error("드라이브 API 오류", err);
+      }
+    };
+
+    fetchDriveFolders();
+  }, [apiToken]);
 
   useEffect(() => {
     localStorage.setItem('drive:selected', JSON.stringify(selectedFolderIds));
@@ -57,7 +83,7 @@ export function useDriveFolders(apiToken: string | undefined, initialFiles: File
     const walk = (nodes: DriveFolder[]) => {
       nodes.forEach(f => {
         ids.push(f.id);
-        if (f.subFolders?.length) walk(f.subFolders);
+        if (f.folders?.length) walk(f.folders);
       });
     };
     walk(driveFolders);
@@ -69,16 +95,16 @@ export function useDriveFolders(apiToken: string | undefined, initialFiles: File
     const collect = (nodes: DriveFolder[]) => {
       nodes.forEach(n => {
         out.push(n.id);
-        if (n.subFolders?.length) collect(n.subFolders);
+        if (n.folders?.length) collect(n.folders);
       });
     };
     const dfs = (nodes: DriveFolder[]) => {
       for (const n of nodes) {
         if (n.id === id) {
-          if (n.subFolders?.length) collect(n.subFolders);
+          if (n.folders?.length) collect(n.folders);
           return;
         }
-        if (n.subFolders?.length) dfs(n.subFolders);
+        if (n.folders?.length) dfs(n.folders);
       }
     };
     dfs(driveFolders);
@@ -87,7 +113,6 @@ export function useDriveFolders(apiToken: string | undefined, initialFiles: File
 
   const getChildrenIdsInclusive = (id: string): string[] => [id, ...getDescendantIds(id)];
 
-  // 3상태
   const getCheckState = (id: string): CheckState => {
     const ids = getChildrenIdsInclusive(id);
     const selected = ids.filter(i => selectedFolderIds.includes(i)).length;
@@ -96,40 +121,35 @@ export function useDriveFolders(apiToken: string | undefined, initialFiles: File
     return 'indeterminate';
   };
 
-  // 펼침
-  const toggleFolder = (folderId: string, parentId?: string) => {
+  const toggleFolder = (folderId: string) => {
     setDriveFolders(prev =>
       prev.map(f => {
-        if (!parentId && f.id === folderId) return { ...f, isExpanded: !f.isExpanded };
-        if (parentId && f.id === parentId && f.subFolders) {
-          return {
-            ...f,
-            subFolders: f.subFolders.map(sub =>
-              sub.id === folderId ? { ...sub, isExpanded: !sub.isExpanded } : sub
-            ),
-          };
-        }
-        return f;
-      }),
+        const toggleRecursively = (node: DriveFolder): DriveFolder => {
+          if (node.id === folderId) return { ...node, isExpanded: !node.isExpanded };
+          if (node.folders?.length) {
+            return { ...node, folders: node.folders.map(toggleRecursively) };
+          }
+          return node;
+        };
+        return toggleRecursively(f);
+      })
     );
     setActiveFolderId(folderId);
   };
 
-  // ✅ 개별 토글(그 노드만)
   const toggleSelectFolder = (folderId: string) => {
     setSelectedFolderIds(prev =>
       prev.includes(folderId) ? prev.filter(id => id !== folderId) : [...prev, folderId]
     );
   };
 
-  // ✅ 부모/자식 일괄 토글
   const toggleSelectCascade = (folderId: string) => {
     const ids = getChildrenIdsInclusive(folderId);
     const allSelected = ids.every(id => selectedFolderIds.includes(id));
     setSelectedFolderIds(prev => {
-      if (allSelected) return prev.filter(id => !ids.includes(id)); // 모두 해제
+      if (allSelected) return prev.filter(id => !ids.includes(id));
       const set = new Set(prev);
-      ids.forEach(id => set.add(id));                               // 전부 선택
+      ids.forEach(id => set.add(id));
       return Array.from(set);
     });
   };
@@ -141,13 +161,11 @@ export function useDriveFolders(apiToken: string | undefined, initialFiles: File
     driveFolders,
     toggleFolder,
     activeFolderId,
-
     selectedFolderIds,
-    toggleSelectFolder,     // ✅ 이제 존재
-    toggleSelectCascade,    // ✅ 일괄 토글
+    toggleSelectFolder,
+    toggleSelectCascade,
     clearSelectedFolders,
     selectAllFolders,
-
     getCheckState,
   };
 }

@@ -14,6 +14,15 @@ export interface FileItem {
   isFavorite?: boolean;
 }
 
+export interface DriveFolder {
+  id: string;
+  name: string;
+  driveId?: string;
+  isExpanded?: boolean;
+  files: FileItem[];
+  subFolders?: DriveFolder[];
+}
+
 export interface ChatMessage {
   id: string;
   type: 'user' | 'bot';
@@ -23,11 +32,12 @@ export interface ChatMessage {
 }
 
 export interface ApiKey {
-  id: string;
-  name: string;
-  maskedKey: string;
-  created: string;     // 'YYYY-MM-DD'
-  lastUsed: string;    // 예: '방금 전'
+  apiIdx: number;
+  userIdx: number;
+  apiTitle: string;
+  apiURL: string;
+  createdDate: string;
+  lastUsed: string;
   isConnected: boolean;
 }
 

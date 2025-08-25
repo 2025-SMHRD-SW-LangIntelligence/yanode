@@ -10,7 +10,9 @@ import com.smhrd.ss.entity.UserApiEntity;
 public interface UserApiRepository extends JpaRepository<UserApiEntity, Long> {
 	List<UserApiEntity> findAllByUserIdx(Long userIdx);
 
-	Optional<UserApiEntity> findByUserIdxAndApiURL(Long userIdx, String apiURL);
+	Optional<UserApiEntity> findByApiIdx(Long apiIdx);
 
 	List<UserApiEntity> findAllByUserIdxAndIsConnected(Long userIdx, Boolean bool);
+
+	Optional<UserApiEntity> findByUserIdxAndApiURL(Long userIdx, String apiURL);
 }

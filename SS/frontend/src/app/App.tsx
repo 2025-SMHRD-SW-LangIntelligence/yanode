@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import type { ApiKey } from '../types';
 
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { SignupScreen } from '../features/auth/SignupScreen';
@@ -11,7 +12,6 @@ import { FilePreviewDrawer } from '../features/files/FilePreviewDrawer';
 import { useFiles } from '../features/files/useFiles';
 import { useApiKeys } from '../features/settings/useApiKeys';
 import { useMobile } from '../hooks/useMobile';
-import type { FileItem } from '../types';
 
 // 모바일 컴포넌트 import (기존과 동일)
 import MobileHomeScreen from '../components/mobile/MobileHomeScreen';
@@ -22,6 +22,10 @@ import MobileBottomNav from '../components/mobile/MobileBottomNav';
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]); // 중앙 상태
+
+  const hasConnectedApiKeys = apiKeys.some(k => k.isConnected);
+  const connectedKeys = apiKeys.filter(k => k.isConnected);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -41,12 +45,34 @@ export default function App() {
         });
         if (res.ok) {
           navigate('/home'); // 바로 홈으로 이동
+        } else{
+          navigate('/login')
         }
       } catch (e) {
-        console.error("세션 확인 실패", e);
       }
     };
     checkLogin();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserApis = async () => {
+      try {
+        const res = await fetch('http://localhost:8090/api/auth/myApis', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setApiKeys(data);
+        } else {
+          console.error('API 키 로드 실패', data);
+        }
+      } catch (err) {
+        console.error('API 키 불러오기 오류', err);
+      }
+    };
+
+    fetchUserApis();
   }, []);
 
   const {
@@ -57,15 +83,6 @@ export default function App() {
     onToggleFavorite,
     handleClosePreview,
   } = useFiles();
-
-  const {
-    apiKeys,
-    hasConnectedApiKeys,
-    onUpdateApiKeys,
-    onDisconnectAllApiKeys,
-    onDisconnectApiKey,
-    onConnectApiKey,
-  } = useApiKeys();
 
   const { isMobile } = useMobile();
 
@@ -116,7 +133,18 @@ export default function App() {
         <Route path="/onboarding" element={<OnboardingScreen onComplete={() => navigate('/home')} />} />
         <Route
           path="/home"
-          element={<HomeScreen onNavigateToChat={() => navigate('/chat')} onOpenSettings={() => navigate('/settings')} hasConnectedApiKeys={hasConnectedApiKeys} files={files} onToggleFavorite={onToggleFavorite} onFileSelect={onFileSelect} onDisconnectAllApiKeys={onDisconnectAllApiKeys} apiKeys={apiKeys} />}
+          element={
+            <HomeScreen
+              onNavigateToChat={() => navigate('/chat')}
+              onOpenSettings={() => navigate('/settings')}
+              hasConnectedApiKeys={hasConnectedApiKeys}
+              files={files}
+              onToggleFavorite={onToggleFavorite}
+              onFileSelect={onFileSelect}
+              apiKeys={apiKeys}
+              connectedKeys={apiKeys.filter(key => key.isConnected)}
+            />
+          }
         />
         <Route
           path="/chat"
@@ -124,7 +152,31 @@ export default function App() {
         />
         <Route
           path="/settings"
-          element={<SettingsScreen onBack={() => navigate('/home')} onLogout={handleLogout} apiKeys={apiKeys} onUpdateApiKeys={onUpdateApiKeys} onDisconnectApiKey={onDisconnectApiKey} onConnectApiKey={onConnectApiKey} isDarkMode={isDarkMode} onToggleDarkMode={setIsDarkMode} />}
+          element={
+            <SettingsScreen
+              onBack={() => navigate('/home')}
+              onLogout={handleLogout}
+              apiKeys={apiKeys} // App.tsx에서 가져온 상태
+              connectedKeys={connectedKeys}
+              onUpdateApiKeys={setApiKeys}
+              onConnectApiKey={(apiURL: string) =>
+                setApiKeys(prev =>
+                  prev.map(k =>
+                    k.apiURL === apiURL ? { ...k, isConnected: true, lastUsed: '방금 전' } : k
+                  )
+                )
+              }
+              onDisconnectApiKey={(apiURL: string) =>
+                setApiKeys(prev =>
+                  prev.map(k =>
+                    k.apiURL === apiURL ? { ...k, isConnected: false, lastUsed: '방금 연결 해제됨' } : k
+                  )
+                )
+              }
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={setIsDarkMode}
+            />
+          }
         />
         <Route path="*" element={<div><h1>404 - Page Not Found</h1></div>} />
       </Routes>

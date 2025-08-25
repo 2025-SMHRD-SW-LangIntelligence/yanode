@@ -38,8 +38,8 @@ public class UserApiService {
     }
 
 	@Transactional
-	public boolean delete(String apiURL, Long userIdx) {
-		return userApiRepository.findByUserIdxAndApiURL(userIdx, apiURL)
+	public boolean delete(Long apiIdx) {
+		return userApiRepository.findByApiIdx(apiIdx)
                 .map(api -> {
                     userApiRepository.delete(api);
                     return true;
