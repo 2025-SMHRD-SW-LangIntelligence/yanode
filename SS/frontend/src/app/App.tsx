@@ -7,7 +7,7 @@ import { LoginScreen } from '../features/auth/LoginScreen';
 import { SignupScreen } from '../features/auth/SignupScreen';
 import { OnboardingScreen } from '../features/home/OnboardingScreen';
 import { HomeScreen } from '../features/home/HomeScreen';
-import UploadScreen from '../features/upload/UploadScreen'; // ✅ default export 로 import
+import UploadScreen from '../features/upload/UploadScreen.tsx'; // ✅ default export 로 import
 import { MainChatInterface } from '../features/chat/MainChatInterface';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { FilePreviewDrawer } from '../features/files/FilePreviewDrawer';
@@ -15,6 +15,7 @@ import { useFiles } from '../features/files/useFiles';
 import { useApiKeys } from '../features/settings/useApiKeys';
 import { useMobile } from '../hooks/useMobile';
 import type { FileItem } from '../types';
+
 
 // 모바일 컴포넌트
 import MobileHomeScreen from '../components/mobile/MobileHomeScreen';
