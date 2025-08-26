@@ -19,7 +19,6 @@ import {
   AlertCircle,
   CheckCircle,
 } from 'lucide-react';
-import Sidebar from '../../imports/Sidebar-2051-288';
 import type { FileItem } from '../../types';
 import { FileSearchModal } from '../files/FileSearchModal';
 import ExplorerSidebar from '../../components/layout/ExplorerSidebar';
@@ -153,7 +152,6 @@ export function HomeScreen({
                 onClick={() => setSidebarOpen(!sidebarOpen)}
               >
                 <div className="w-5 h-5 text-muted-foreground">
-                  <Sidebar />
                 </div>
               </Button>
               <div className="flex items-center space-x-3">
