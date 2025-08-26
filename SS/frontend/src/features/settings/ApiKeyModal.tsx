@@ -1,22 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { X, Key, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom'
+import type { ApiKey } from '../../types';
+
 
 interface ApiKeyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (apiKey: string, name: string) => void;
-  editingKey?: { id: string; name: string; key: string } | null;
+  onSave: (newApi: ApiKey) => void;
+  editingKey?: ApiKey | null;
+  initialTab?: 'profile' | 'preferences' | 'security' | 'about';
+  refetchApis?: () => Promise<void>;
 }
 
-export function ApiKeyModal({ isOpen, onClose, onSave, editingKey }: ApiKeyModalProps) {
-  const [apiKey, setApiKey] = useState(editingKey?.key || '');
-  const [keyName, setKeyName] = useState(editingKey?.name || '');
+export function ApiKeyModal({ isOpen, onClose, onSave, editingKey, refetchApis }: ApiKeyModalProps) {
+  const [apiKey, setApiKey] = useState(editingKey?.apiURL || '');
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [keyName, setKeyName] = useState(editingKey?.apiTitle || '');
   const [showKey, setShowKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
+  const location = useLocation();
+  const initialTab = location.state?.initialTab || 'profile';
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security' | 'about'>(initialTab);
+  const navigate = useNavigate();
 
   if (!isOpen) return null;
 
@@ -42,20 +52,23 @@ export function ApiKeyModal({ isOpen, onClose, onSave, editingKey }: ApiKeyModal
       if (res.ok) {
         setValidationStatus('valid');
 
-        const newApi = {
-          id: crypto.randomUUID,
+        const newApi: ApiKey = {
+          apiIdx: result.apiIdx,
+          userIdx: result.userIdx,
           apiTitle: keyName,
           apiURL: apiKey,
           createdDate: result.createdDate,
-          lastUsed: null,
-          isConnected: false
+          lastUsed: result.lastUsed ?? '',
+          isConnected: result.isConnected ?? false,
         };
 
         setTimeout(() => {
           onSave(newApi);
           handleClose();
+          refetchApis?.();
+
           alert(result.message || 'API가 저장되었습니다.');
-        }, 100);
+        }, 1);
       } else {
         setValidationStatus('invalid')
         setIsLoading(false);
@@ -145,7 +158,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, editingKey }: ApiKeyModal
                 onChange={(e) => handleKeyChange(e.target.value)}
                 placeholder="Dooray API 키를 입력하세요"
                 className={`glass border-white/20 bg-white/50 dark:bg-gray-800/50 h-12 pr-20 ${validationStatus === 'valid' ? 'border-green-300 dark:border-green-600' :
-                    validationStatus === 'invalid' ? 'border-red-300 dark:border-red-600' : ''
+                  validationStatus === 'invalid' ? 'border-red-300 dark:border-red-600' : ''
                   }`}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
