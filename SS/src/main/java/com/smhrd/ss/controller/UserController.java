@@ -1,5 +1,6 @@
 package com.smhrd.ss.controller;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -7,13 +8,12 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
 import com.smhrd.ss.config.SecurityConfig;
 import com.smhrd.ss.entity.UserEntity;
 import com.smhrd.ss.service.UserService;
@@ -25,6 +25,7 @@ import jakarta.servlet.http.HttpSession;
 public class UserController {
 
     private final SecurityConfig securityConfig;
+    
 	@Autowired
 	private UserService userService;
 
@@ -65,12 +66,15 @@ public class UserController {
 					.status(HttpStatus.CONFLICT)
 					.body(Collections.singletonMap("message", "이메일이 중복되었습니다."));
 		}
+		Timestamp now = new Timestamp(System.currentTimeMillis());
 		
 		UserEntity entity = new UserEntity();
 		entity.setName(request.getName());
 		entity.setEmail(request.getEmail());
 		entity.setPassword(request.getPassword());
-		entity.setOAuth(0);
+		entity.setJoinedAt(now);
+		entity.setLastPwChgAt(now);
+		entity.setOAuth(0);	
 		
 		String result = userService.register(entity);
 		
@@ -129,16 +133,30 @@ public class UserController {
 	    return ResponseEntity.ok(Collections.singletonMap("message", "프로필이 성공적으로 수정되었습니다."));
 	}
 	
-//	@PostMapping("/chgPw")
-//	public void changePassword(HttpSession session) {
-//		
-//	}
+	// 비밀번호 변경
+	@PostMapping("/chgPw")
+	public void changePassword(@RequestBody Map<String, Object> request, HttpSession session) {
+		UserEntity user = (UserEntity) session.getAttribute("user");
+		user.getPassword();
+	}
 	
 	// 로그아웃
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(HttpSession session) {
         session.invalidate();
         return ResponseEntity.ok(Collections.singletonMap("message", "로그아웃 성공"));
+    }
+    
+    @PostMapping("userDelete")
+    public ResponseEntity<Map<String, Object>> userDelete(HttpSession session) {
+    	UserEntity user = (UserEntity) session.getAttribute("user");
+    	if (user == null) {
+    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+	                .body(Collections.singletonMap("message", "로그인이 필요합니다."));
+    	}
+    	userService.delete(user);
+    	session.invalidate();
+    	return ResponseEntity.ok(Collections.singletonMap("message", "회원탈뢰 성공"));
     }
 	
 }

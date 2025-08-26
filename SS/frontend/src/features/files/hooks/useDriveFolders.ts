@@ -48,8 +48,12 @@ export function useDriveFolders(apiToken: string | undefined, initialFiles: File
             id: f.id,
             name: f.name,
             type: f.type,
+            size: f.size,
+            creator : f.creator.organizationMemberId,
+            createdAt : f.createdAt,
+            lastUpdater : f.lastUpdater.organizationMemberId,
+            updatedAt: f.updatedAt,
             icon: "📄",
-            modified: f.modifiedAt || f.createdAt,
           })),
           folders: (folder.subFolders || []).map((sub: any) => transformFolder(sub, driveId)),
         });

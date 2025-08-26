@@ -37,9 +37,6 @@ export function LoginScreen({
       if (!res.ok) {
         throw new Error("로그인 실패");
       }
-
-      const data = await res.json();
-
       onLogin();
     } catch (error) {
       console.error(error);

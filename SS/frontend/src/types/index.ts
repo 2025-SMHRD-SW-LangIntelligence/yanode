@@ -7,8 +7,10 @@ export interface FileItem {
   name: string;
   type: 'pdf' | 'word' | 'excel' | 'powerpoint' | string;
   size: number;
-  modified: string;    // 예: '방금 전', '2시간 전'
-  modifiedBy: string;  // 예: '김마케팅'
+  creator : string;
+  createdAt : string;
+  lastUpdater : string;
+  updatedAt: string;
   path: string;
   icon?: string;       // 이모지/아이콘 (옵션)
   isFavorite?: boolean;

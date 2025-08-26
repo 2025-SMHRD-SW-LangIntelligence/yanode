@@ -27,7 +27,7 @@ import { useApiKeys } from '../settings/useApiKeys';
 
 interface HomeScreenProps {
   onNavigateToChat: () => void;
-  onOpenSettings: () => void;
+  onOpenSettings: (tab?: 'profile' | 'preferences' | 'security' | 'about') => void;
   hasConnectedApiKeys: boolean;
   files: FileItem[];
   onToggleFavorite: (fileId: string) => void;
@@ -127,7 +127,7 @@ export function HomeScreen({
                       setShowApiDropdown(!showApiDropdown);
                       console.log(connectedKeys)
                     } else {
-                      onOpenSettings();
+                      onOpenSettings('security');
                     }
                   }}
                   className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:shadow-lg border-2 ${hasConnectedApiKeys
@@ -164,7 +164,7 @@ export function HomeScreen({
                       <button
                         onClick={() => {
                           setShowApiDropdown(false);
-                          onOpenSettings();
+                          onOpenSettings("security");
                         }}
                         className="w-full flex items-center space-x-2 p-2 text-sm text-muted-foreground hover:bg-accent rounded-md transition-all mt-1"
                       >
@@ -180,7 +180,7 @@ export function HomeScreen({
                 variant="ghost"
                 size="sm"
                 className="w-10 h-10 p-0 hover:bg-accent rounded-xl border border-border"
-                onClick={onOpenSettings}
+                onClick={() => onOpenSettings()}
               >
                 <Settings className="w-5 h-5 text-muted-foreground" />
               </Button>
@@ -271,7 +271,7 @@ export function HomeScreen({
                       AI 기반 검색 기능을 사용하려면 API 키를 설정해야 합니다. 설정에서 API 키를 추가해 주세요.
                     </p>
                     <Button
-                      onClick={onOpenSettings}
+                      onClick={() => onOpenSettings('security')}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
                       설정으로 이동

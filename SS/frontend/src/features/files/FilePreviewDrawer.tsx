@@ -171,16 +171,16 @@ export function FilePreviewDrawer({ file, isOpen, onClose, onToggleFavorite }: F
                       <div className="flex items-center space-x-3">
                         <Calendar className="w-5 h-5 text-muted-foreground" />
                         <div>
-                          <p className="text-sm font-medium text-foreground">수정일</p>
-                          <p className="text-sm text-muted-foreground">{file.modified}</p>
+                          <p className="text-sm font-medium text-foreground">생성자</p>
+                          <p className="text-sm text-muted-foreground">{file.creator}</p>
                         </div>
                       </div>
                       
                       <div className="flex items-center space-x-3">
                         <User className="w-5 h-5 text-muted-foreground" />
                         <div>
-                          <p className="text-sm font-medium text-foreground">수정자</p>
-                          <p className="text-sm text-muted-foreground">{file.modifiedBy}</p>
+                          <p className="text-sm font-medium text-foreground">생성일</p>
+                          <p className="text-sm text-muted-foreground">{file.createdAt ? new Date(file.createdAt).toLocaleString() : '-'}</p>
                         </div>
                       </div>
                       
@@ -218,24 +218,24 @@ export function FilePreviewDrawer({ file, isOpen, onClose, onToggleFavorite }: F
                       <div className="flex items-center space-x-3">
                         <Tag className="w-5 h-5 text-muted-foreground" />
                         <div>
-                          <p className="text-sm font-medium text-foreground">파일 크기</p>
-                          <p className="text-sm text-muted-foreground">{file.size}</p>
+                          <p className="text-sm font-medium text-foreground">수정자</p>
+                          <p className="text-sm text-muted-foreground">{file.lastUpdater}</p>
                         </div>
                       </div>
                       
                       <div className="flex items-center space-x-3">
                         <Eye className="w-5 h-5 text-muted-foreground" />
                         <div>
-                          <p className="text-sm font-medium text-foreground">조회수</p>
-                          <p className="text-sm text-muted-foreground">127회</p>
+                          <p className="text-sm font-medium text-foreground">수정일</p>
+                          <p className="text-sm text-muted-foreground">{file.updatedAt ? new Date(file.updatedAt).toLocaleString() : '-'}</p>
                         </div>
                       </div>
                       
                       <div className="flex items-center space-x-3">
                         <Clock className="w-5 h-5 text-muted-foreground" />
                         <div>
-                          <p className="text-sm font-medium text-foreground">파일 경로</p>
-                          <p className="text-sm text-muted-foreground truncate">{file.path}</p>
+                          <p className="text-sm font-medium text-foreground">파일 크기</p>
+                          <p className="text-sm text-muted-foreground truncate">{(file.size / 1024 / 1024).toFixed(1)}MB</p>
                         </div>
                       </div>
                     </div>

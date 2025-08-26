@@ -19,10 +19,10 @@ public class UserApiService {
     @Autowired
     private UserApiRepository userApiRepository;
 
-    public UserApiEntity saveUserApi(Long userIdx, String title, String url) {
+    public UserApiEntity saveUserApi(UserEntity user, String title, String url) {
         UserApiEntity api = new UserApiEntity();
         Timestamp now = new Timestamp(System.currentTimeMillis());
-        api.setUserIdx(userIdx);
+        api.setUserIdx(user);
         api.setApiTitle(title);
         api.setApiURL(url);
         api.setCreatedDate(now);
@@ -30,15 +30,15 @@ public class UserApiService {
         return userApiRepository.save(api);
     }
     
-    public List<UserApiEntity> getApisByUser(Long userIdx) {
-        return userApiRepository.findAllByUserIdx(userIdx);
+    public List<UserApiEntity> getApisByUser(UserEntity user) {
+        return userApiRepository.findAllByUserIdx(user);
     }
     public Optional<UserApiEntity> getApiToken(Long apiIdx) {
     	return userApiRepository.findByApiIdx(apiIdx);
     }
     
-    public List<UserApiEntity> getApisIsConnected(Long userIdx, Boolean bool){
-    	return userApiRepository.findAllByUserIdxAndIsConnected(userIdx, bool);
+    public List<UserApiEntity> getApisIsConnected(UserEntity user, Boolean bool){
+    	return userApiRepository.findAllByUserIdxAndIsConnected(user, bool);
     }
 
 	@Transactional
@@ -55,7 +55,9 @@ public class UserApiService {
     public void connectApi(Long apiIdx) {
         UserApiEntity api = userApiRepository.findByApiIdx(apiIdx)
             .orElseThrow(() -> new RuntimeException("API 키 없음"));
+        Timestamp now = new Timestamp(System.currentTimeMillis());
         api.setIsConnected(true);
+        api.setLastUsed(now);
         userApiRepository.save(api);
     }
 	

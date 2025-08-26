@@ -100,7 +100,7 @@ export default function App() {
           <Route path="/signup" element={<SignupScreen onSignup={() => navigate('/onboarding')} onBackToLogin={() => navigate('/login')} />} />
           <Route path="/onboarding" element={<OnboardingScreen onComplete={() => navigate('/home')} />} />
 
-          <Route path="/home" element={<MobileHomeScreen onNavigateToChat={() => navigate('/chat')} onOpenSettings={() => navigate('/settings')} hasConnectedApiKeys={hasConnectedApiKeys} files={files} onToggleFavorite={onToggleFavorite} onFileSelect={onFileSelect} apiKeys={apiKeys} />} />
+          <Route path="/home" element={<MobileHomeScreen onNavigateToChat={() => navigate('/chat')} onOpenSettings={(tab?: 'profile' | 'preferences' | 'security' | 'about') => navigate('/settings', { state: { initialTab: tab} })} hasConnectedApiKeys={hasConnectedApiKeys} files={files} onToggleFavorite={onToggleFavorite} onFileSelect={onFileSelect} apiKeys={apiKeys} />} />
           <Route path="/chat" element={<MobileChatInterface onFileSelect={onFileSelect} onBack={() => navigate('/home')} files={files} onToggleFavorite={onToggleFavorite} onOpenSettings={() => navigate('/settings')} apiKeys={apiKeys} />} />
           <Route path="/settings" element={<MobileSettingsScreen onBack={() => navigate('/home')} onLogout={handleLogout} apiKeys={apiKeys} isDarkMode={isDarkMode} onToggleDarkMode={setIsDarkMode} />} />
         </Routes>
@@ -133,7 +133,9 @@ export default function App() {
           element={
             <HomeScreen
               onNavigateToChat={() => navigate('/chat')}
-              onOpenSettings={() => navigate('/settings')}
+              onOpenSettings={(tab?: 'profile' | 'preferences' | 'security' | 'about') => {
+                navigate('/settings', { state: { initialTab: tab || 'profile' } });
+              }}
               hasConnectedApiKeys={hasConnectedApiKeys}
               files={files}
               onToggleFavorite={onToggleFavorite}
@@ -153,7 +155,7 @@ export default function App() {
             <SettingsScreen
               onBack={() => navigate('/home')}
               onLogout={handleLogout}
-              apiKeys={apiKeys} // App.tsx에서 가져온 상태
+              apiKeys={apiKeys}
               connectedKeys={connectedKeys}
               onUpdateApiKeys={setApiKeys}
               onConnectApiKey={(apiURL: string) =>

@@ -71,7 +71,7 @@ public class DoorayController {
 	@PostMapping("/apiLoading")
 	public ResponseEntity<?> apiLoading(HttpSession session) {
 		UserEntity user = (UserEntity) session.getAttribute("user");
-		List<UserApiEntity> list = userApiService.getApisIsConnected(user.getUserIdx(), true);
+		List<UserApiEntity> list = userApiService.getApisIsConnected(user, true);
 		if (list != null) {
 			return ResponseEntity.ok(list);	
 		} else {
@@ -83,7 +83,7 @@ public class DoorayController {
 	@PostMapping("/driveLoading")
 	public ResponseEntity<?> driveLoading(HttpSession session) {
         UserEntity user = (UserEntity) session.getAttribute("user");
-        List<UserApiEntity> apis = userApiService.getApisIsConnected(user.getUserIdx(), true);
+        List<UserApiEntity> apis = userApiService.getApisIsConnected(user, true);
 
         if (apis == null || apis.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("연결된 API 없음");

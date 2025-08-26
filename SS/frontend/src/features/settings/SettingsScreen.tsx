@@ -9,6 +9,7 @@ import { ApiConnectionStatus } from '../settings/ApiConnectionStatus';
 import { HelpModal } from '../../components/common/HelpModal';
 import type { ApiKey } from '../../types';
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -57,6 +58,7 @@ interface SettingsScreenProps {
   isDarkMode: boolean;
   onToggleDarkMode: (value: boolean) => void;
   onApiKeysChange?: (newApiKeys: ApiKey[]) => void;
+  initialTab?: 'profile' | 'preferences' | 'security' | 'about';
 }
 
 export function SettingsScreen({
@@ -65,21 +67,25 @@ export function SettingsScreen({
   onUpdateApiKeys,
   isDarkMode,
   onToggleDarkMode,
-  onApiKeysChange
+  onApiKeysChange,
 }: SettingsScreenProps) {
-  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security' | 'about'>('profile');
   const [profileData, setProfileData] = useState({
     name: '-',
     email: '-',
-    phone: '-',
+    oAuth: 0,
     depart: '-',
-    level: '-'
+    phone: '-',
+    level: '-',
+    lastPwChgAt: '-'
   });
   const [isEditing, setIsEditing] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [editingApiKey, setEditingApiKey] = useState<{ id: string; name: string; key: string } | null>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const location = useLocation();
+  const initialTab = location.state?.initialTab || 'profile';
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security' | 'about'>(initialTab);
 
   const navigate = useNavigate();
 
@@ -120,9 +126,11 @@ export function SettingsScreen({
           setProfileData({
             name: data.name,
             email: data.email,
-            phone: data.phone || '',
+            oAuth: data.oauth,
             depart: data.depart || '',
-            level: data.level || ''
+            phone: data.phone || '',
+            level: data.level || '',
+            lastPwChgAt: data.lastPwChgAt || '',
           });
         }
       } catch (err) {
@@ -133,29 +141,28 @@ export function SettingsScreen({
     fetchUser();
   }, []);
 
-  useEffect(() => {
-    const fetchUserApis = async () => {
-      try {
-        const res = await fetch('http://localhost:8090/api/auth/myApis', {
-          method: 'GET',
-          credentials: 'include'
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setApiKeys(data);
-          onApiKeysChange?.(data);
-        } else {
-          console.error('API 키 로드 실패', data);
-          navigate('/login');
-        }
-      } catch (err) {
-        console.error('API 키 불러오기 오류', err);
+  const fetchUserApis = async () => {
+    try {
+      const res = await fetch('http://localhost:8090/api/auth/myApis', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setApiKeys(data);
+        onApiKeysChange?.(data);
+      } else {
+        console.error('API 키 로드 실패', data);
+        navigate('/login');
       }
-    };
+    } catch (err) {
+      console.error('API 키 불러오기 오류', err);
+    }
+  };
 
+  useEffect(() => {
     fetchUserApis();
   }, []);
-
 
 
   const handleSaveProfile = async () => {
@@ -214,6 +221,10 @@ export function SettingsScreen({
     }
   };
 
+  const changePassword = async () => {
+    if (!prompt('현재 비밀번호', '')) return;
+  }
+
   const onConnectApiKey = async (apiIdx: number) => {
     try {
       const res = await fetch(`http://localhost:8090/api/dooray/driveConnect?apiIdx=${apiIdx}`, {
@@ -255,6 +266,25 @@ export function SettingsScreen({
       console.log("실패")
     }
   };
+
+  const userDelete = async () => {
+    let userInput = prompt(`회원 탈퇴 하시겠습니까? \n (${profileData.name}/탈퇴한다)`, `${profileData.name}/탈퇴한다`)
+    if (userInput === `${profileData.name}/탈퇴한다`) {
+      try {
+        const res = await fetch('http://localhost:8090/api/auth/userDelete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+        console.log("성공적으로 탈퇴되었습니다.")
+        navigate('/login');
+      } catch (err) {
+        console.log("실패")
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -354,7 +384,11 @@ export function SettingsScreen({
                       )}
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground">{profileData.name}</h3>
+                      <h3 className="flex items-center text-lg font-semibold text-foreground">
+                        {profileData.oAuth === 1 && <GoogleIcon></GoogleIcon>}
+                        {profileData.oAuth === 2 && <KakaoIcon></KakaoIcon>}
+                        {profileData.name}
+                      </h3>
                       <p className="text-muted-foreground">{profileData.depart} • {profileData.level}</p>
                     </div>
                   </div>
@@ -388,7 +422,7 @@ export function SettingsScreen({
                         <Input
                           value={profileData.email}
                           onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-                          disabled={!isEditing}
+                          disabled={true}
                           className="glass border-border bg-input h-12 pl-10"
                         />
                       </div>
@@ -440,7 +474,7 @@ export function SettingsScreen({
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <span className="text-xs text-muted-foreground">양진성</span>
+                              <span className="text-xs text-muted-foreground">{profileData.name}</span>
                               <div className="w-6 h-6 bg-gradient-secondary rounded-full flex items-center justify-center">
                                 <User className="w-3 h-3 text-white" />
                               </div>
@@ -508,10 +542,12 @@ export function SettingsScreen({
                           <Key className="w-5 h-5 text-muted-foreground" />
                           <div>
                             <p className="font-medium text-foreground">비밀번호 변경</p>
-                            <p className="text-sm text-muted-foreground">마지막 변경: 3개월 전</p>
+                            <p className="text-sm text-muted-foreground">마지막 변경: {profileData.lastPwChgAt ? new Date(profileData.lastPwChgAt).toLocaleString() : '-'}</p>
                           </div>
                         </div>
-                        <Button className="glass hover:bg-accent text-foreground font-medium rounded-xl border-0">
+                        <Button
+                          onClick={changePassword}
+                          className="glass hover:bg-accent text-foreground font-medium rounded-xl border-0">
                           변경
                         </Button>
                       </div>
@@ -558,7 +594,7 @@ export function SettingsScreen({
                                 </div>
                                 <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                                   <span>생성: {api.createdDate ? new Date(api.createdDate).toLocaleString() : '-'}</span>
-                                  <span>마지막 사용: {api.lastUsed}</span>
+                                  <span>마지막 사용: {api.lastUsed ? new Date(api.lastUsed).toLocaleString() : '-'}</span>
                                 </div>
                               </div>
 
@@ -698,7 +734,7 @@ export function SettingsScreen({
                       <div className="text-center mt-4">
                         <button
                           // onClick 핸들러는 추후 실제 탈퇴 로직으로 연결
-                          onClick={() => alert('정말루 진짜루 회원 탈퇴 할거에요?')}
+                          onClick={userDelete}
                           className="text-sm text-muted-foreground hover:text-destructive hover:underline transition-colors"
                         >
                           회원 탈퇴
@@ -719,7 +755,7 @@ export function SettingsScreen({
           isOpen={showApiKeyModal}
           onClose={() => setShowApiKeyModal(false)}
           onSave={handleSaveApiKey}
-          editingKey={editingApiKey}
+          refetchApis={fetchUserApis}
         />
       )}
 

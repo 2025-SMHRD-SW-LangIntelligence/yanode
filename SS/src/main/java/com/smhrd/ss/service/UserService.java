@@ -41,6 +41,10 @@ public class UserService {
 	public UserEntity save(UserEntity entity) {
 	    return userRepository.save(entity);
 	}
+	
+	public void delete(UserEntity entity) {
+		userRepository.delete(entity);
+	}
 
 	
 }

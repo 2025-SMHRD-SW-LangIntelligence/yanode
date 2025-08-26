@@ -46,7 +46,7 @@ public class UserApiController {
                     .body(Collections.singletonMap("message", "API 이름과 URL을 모두 입력해주세요."));
         }
 
-        userApiService.saveUserApi(sessionUser.getUserIdx(), title, url);
+        userApiService.saveUserApi(sessionUser, title, url);
 
         return ResponseEntity.ok(Collections.singletonMap("message", "API가 성공적으로 저장되었습니다."));
     }
@@ -59,7 +59,7 @@ public class UserApiController {
                     .body(Collections.singletonMap("message", "로그인이 필요합니다."));
         }
         
-        List<UserApiEntity> apis = userApiService.getApisByUser(sessionUser.getUserIdx());
+        List<UserApiEntity> apis = userApiService.getApisByUser(sessionUser);
         return ResponseEntity.ok(apis);
     }
     
