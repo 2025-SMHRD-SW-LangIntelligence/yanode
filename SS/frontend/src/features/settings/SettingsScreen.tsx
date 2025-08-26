@@ -36,6 +36,8 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import ChangePasswordModal from "../settings/ChangePassword"; // ✅ 모달 컴포넌트 불러오기
 
 // --- 소셜 로그인 아이콘 컴포넌트 (그대로 유지) ---
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -111,51 +113,53 @@ export function SettingsScreen({
     }
   };
 
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
   useEffect(() => {
-      const fetchUser = async () => {
-        try {
-          const res = await fetch('http://localhost:8090/api/auth/me', {
-            method: 'GET',
-            credentials: 'include'
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setProfileData({
-              name: data.name,
-              email: data.email,
-              phone: data.phone || '',
-              depart: data.depart || '',
-              level: data.level || ''
-            });
-          }
-        } catch (err) {
-          console.error('유저 정보 불러오기 실패', err);
-        }
-      };
-  
-      fetchUser();
-    }, []);
-  
-    useEffect(() => {
-      fetchUserApis();
-    }, []);
-  
-    const fetchUserApis = async () => {
+    const fetchUser = async () => {
       try {
-        const res = await fetch('http://localhost:8090/api/auth/myApis', {
+        const res = await fetch('http://localhost:8090/api/auth/me', {
           method: 'GET',
           credentials: 'include'
         });
-        const data = await res.json();
         if (res.ok) {
-          setApiKeys(data);
-        } else {
-          console.error('API 키 로드 실패', data);
+          const data = await res.json();
+          setProfileData({
+            name: data.name,
+            email: data.email,
+            phone: data.phone || '',
+            depart: data.depart || '',
+            level: data.level || ''
+          });
         }
       } catch (err) {
-        console.error('API 키 불러오기 오류', err);
+        console.error('유저 정보 불러오기 실패', err);
       }
     };
+
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    fetchUserApis();
+  }, []);
+
+  const fetchUserApis = async () => {
+    try {
+      const res = await fetch('http://localhost:8090/api/auth/myApis', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setApiKeys(data);
+      } else {
+        console.error('API 키 로드 실패', data);
+      }
+    } catch (err) {
+      console.error('API 키 불러오기 오류', err);
+    }
+  };
 
   const handleSaveProfile = async () => {
     setIsEditing(false);
@@ -520,11 +524,22 @@ export function SettingsScreen({
                             <p className="text-sm text-muted-foreground">마지막 변경: 3개월 전</p>
                           </div>
                         </div>
-                        <Button className="glass hover:bg-accent text-foreground font-medium rounded-xl border-0">
+                        <Button
+                          onClick={() => setShowPasswordModal(true)}
+                          className="glass hover:bg-accent text-foreground font-medium rounded-xl border-0"
+                        >
                           변경
                         </Button>
                       </div>
                     </div>
+
+                    {/* 모달 */}
+                    {showPasswordModal && (
+                      <ChangePasswordModal
+                        isOpen={showPasswordModal}
+                        onClose={() => setShowPasswordModal(false)}
+                      />
+                    )}
 
                     {/* API 키 관리 */}
                     <div className="space-y-4">

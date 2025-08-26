@@ -15,6 +15,7 @@ import { useFiles } from '../features/files/useFiles';
 import { useApiKeys } from '../features/settings/useApiKeys';
 import { useMobile } from '../hooks/useMobile';
 import type { FileItem } from '../types';
+import ChangePassword from '../features/settings/ChangePassword';
 
 
 // 모바일 컴포넌트
@@ -139,6 +140,7 @@ export default function App() {
               />
             }
           />
+          <Route path="/change-password" element={<ChangePassword />} />
         </Routes>
         {/* 필요하면 <MobileBottomNav /> 추가 */}
       </div>
@@ -221,9 +223,11 @@ export default function App() {
             />
           }
         />
+        <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/upload" element={<UploadScreen />} /> {/* ✅ 업로드 페이지 */}
         <Route path="*" element={<div><h1>404 - Page Not Found</h1></div>} />
       </Routes>
+          
     </>
   );
 }
