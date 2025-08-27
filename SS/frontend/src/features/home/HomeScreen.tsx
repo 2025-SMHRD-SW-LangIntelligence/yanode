@@ -1,5 +1,3 @@
-// C:\Users\smhrd\Desktop\front_f\SS\frontend\src\features\home\HomeScreen.tsx
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -23,6 +21,8 @@ import type { FileItem } from '../../types';
 import { FileSearchModal } from '../files/FileSearchModal';
 import ExplorerSidebar from '../../components/layout/ExplorerSidebar';
 import { useNavigate } from 'react-router-dom';
+import { PanelLeft } from 'lucide-react';
+
 
 interface HomeScreenProps {
   onNavigateToChat: () => void;
@@ -145,14 +145,13 @@ export function HomeScreen({
         <header className="bg-background border-b-2 border-border p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button
+               <Button
                 variant="ghost"
                 size="sm"
                 className="w-10 h-10 p-0 hover:bg-accent rounded-xl border border-border"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
               >
-                <div className="w-5 h-5 text-muted-foreground">
-                </div>
+                <PanelLeft className="w-5 h-5 text-muted-foreground" />
               </Button>
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center border border-border">

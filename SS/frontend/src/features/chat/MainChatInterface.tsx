@@ -1,5 +1,3 @@
-// C:\Users\smhrd\Desktop\front_f\SS\frontend\src\features\chat\MainChatInterface.tsx
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';

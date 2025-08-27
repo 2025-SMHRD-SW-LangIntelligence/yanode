@@ -37,7 +37,9 @@ import {
   XCircle
 } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
-import ChangePasswordModal from "../settings/ChangePassword"; // ✅ 모달 컴포넌트 불러오기
+import ChangePasswordModal from "../settings/ChangePassword"; 
+
+
 
 // --- 소셜 로그인 아이콘 컴포넌트 (그대로 유지) ---
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -303,7 +305,7 @@ export function SettingsScreen({
         <div className="flex flex-col lg:flex-row gap-6">
           {/* 사이드바 탭 */}
           <div className="lg:w-80">
-            <Card className="glass-strong border border-border p-2">
+            <Card className="border-border p-2">
               <div className="space-y-1">
                 {tabs.map((tab) => (
                   <button
@@ -324,7 +326,7 @@ export function SettingsScreen({
 
           {/* 메인 콘텐츠 */}
           <div className="flex-1">
-            <Card className="glass-strong border border-border p-8 min-h-[600px]">
+            <Card className="border-border p-8 min-h-[600px]">
               {/* 프로필 탭 */}
               {activeTab === 'profile' && (
                 <div className="space-y-8 animate-fade-in">
@@ -515,7 +517,7 @@ export function SettingsScreen({
 
                   <div className="space-y-6">
                     {/* 비밀번호 변경 */}
-                    <div className="glass p-6 rounded-xl border border-border card-hover">
+                    <div className="p-6 rounded-xl border border-border card-hover">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <Key className="w-5 h-5 text-muted-foreground" />
@@ -562,7 +564,7 @@ export function SettingsScreen({
 
                       <div className="space-y-3">
                         {apiKeys.map((api) => (
-                          <div key={api.apiURL} className="glass p-4 rounded-xl border border-border card-hover">
+                          <div key={api.apiURL} className="p-4 rounded-xl border border-border card-hover">
                             <div className="flex items-center justify-between">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center space-x-3 mb-2">
@@ -648,7 +650,7 @@ export function SettingsScreen({
                     <ApiConnectionStatus apiKeys={apiKeys} />
 
                     {/* 활성 세션 */}
-                    <div className="glass p-6 rounded-xl border border-border">
+                    <div className="p-6 rounded-xl border border-border">
                       <h3 className="font-medium text-foreground mb-4">활성 세션</h3>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between p-3 bg-accent rounded-lg">
@@ -673,7 +675,7 @@ export function SettingsScreen({
 
                   <div className="space-y-6">
                     {/* 앱 버전 */}
-                    <div className="glass p-6 rounded-xl border border-border">
+                    <div className="p-6 rounded-xl border border-border">
                       <div className="flex items-center space-x-4 mb-6">
                         <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center">
                           <SettingsIcon className="w-8 h-8 text-white" />
@@ -701,7 +703,7 @@ export function SettingsScreen({
                     </div>
 
                     {/* 도움말 */}
-                    <div className="glass p-6 rounded-xl border border-border card-hover">
+                    <div className=" p-6 rounded-xl border border-border card-hover">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <HelpCircle className="w-5 h-5 text-muted-foreground" />
@@ -720,7 +722,7 @@ export function SettingsScreen({
                     </div>
 
                     {/* 개인정보 처리방침 */}
-                    <div className="glass p-6 rounded-xl border border-border card-hover">
+                    <div className="p-6 rounded-xl border border-border card-hover">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <Shield className="w-5 h-5 text-muted-foreground" />
@@ -736,7 +738,7 @@ export function SettingsScreen({
                     </div>
 
                     {/* 로그아웃 */}
-                    <div className="glass p-6 rounded-xl border border-red-200/20 bg-red-50/10">
+                    <div className="p-6 rounded-xl border border-red-200/20 bg-red-50/10">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <LogOut className="w-5 h-5 text-red-500" />
