@@ -2,20 +2,20 @@ import type { FileItem, ApiKey } from '../../types';
 
 export const initialApiKeys: ApiKey[] = [
   {
-    id: '1',
-    name: '개발팀 Dooray 키',
-    key: 'dk_1234567890abcdef...',
-    maskedKey: 'dk_***************cdef',
-    created: '2024-03-15',
+    apiIdx: 1,
+    userIdx: 1,
+    apiTitle: '개발팀 Dooray 키',
+    apiURL: 'dk_1234567890abcdef...',
+    createdDate: '2024-03-15',
     lastUsed: '2시간 전',
     isConnected: true
   },
   {
-    id: '2',
-    name: '마케팅팀 API 키',
-    key: 'dk_abcdef1234567890...',
-    maskedKey: 'dk_***************7890',
-    created: '2024-03-10',
+    apiIdx: 2,
+    userIdx: 1,
+    apiTitle: '마케팅팀 API 키',
+    apiURL: 'dk_abcdef1234567890...',
+    createdDate: '2024-03-10',
     lastUsed: '1일 전',
     isConnected: false
   }

@@ -1,8 +1,7 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import type { ApiKey, ApiKeysHookReturn } from '../../types';
-import { initialApiKeys } from '../files/mockData';
 
-export function useApiKeys(): ApiKeysHookReturn {
+export function useApiKeys(initialApiKeys: ApiKey[] = []): ApiKeysHookReturn {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>(initialApiKeys);
 
   const hasConnectedApiKeys = useMemo(() => 
@@ -32,7 +31,7 @@ export function useApiKeys(): ApiKeysHookReturn {
   const handleDisconnectApiKey = useCallback((apiKeyId: string) => {
     setApiKeys(prevKeys => 
       prevKeys.map(key => 
-        key.id === apiKeyId 
+        key.apiURL === apiKeyId 
           ? { ...key, isConnected: false, lastUsed: '방금 연결 해제됨' }
           : key
       )
@@ -42,12 +41,16 @@ export function useApiKeys(): ApiKeysHookReturn {
   const handleConnectApiKey = useCallback((apiKeyId: string) => {
     setApiKeys(prevKeys => 
       prevKeys.map(key => 
-        key.id === apiKeyId 
+        key.apiURL === apiKeyId 
           ? { ...key, isConnected: true, lastUsed: '방금 전' }
           : key
       )
     );
   }, []);
+
+  useEffect(() => {
+    setApiKeys(initialApiKeys);
+  }, [initialApiKeys]);
 
   return {
     apiKeys,

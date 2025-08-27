@@ -2,6 +2,7 @@ package com.smhrd.ss.service;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,12 +26,15 @@ public class UserApiService {
         api.setApiTitle(title);
         api.setApiURL(url);
         api.setCreatedDate(now);
-
+        
         return userApiRepository.save(api);
     }
     
     public List<UserApiEntity> getApisByUser(Long userIdx) {
         return userApiRepository.findAllByUserIdx(userIdx);
+    }
+    public Optional<UserApiEntity> getApiToken(Long apiIdx) {
+    	return userApiRepository.findByApiIdx(apiIdx);
     }
     
     public List<UserApiEntity> getApisIsConnected(Long userIdx, Boolean bool){
@@ -38,8 +42,8 @@ public class UserApiService {
     }
 
 	@Transactional
-	public boolean delete(String apiURL, Long userIdx) {
-		return userApiRepository.findByUserIdxAndApiURL(userIdx, apiURL)
+	public boolean delete(Long apiIdx) {
+		return userApiRepository.findByApiIdx(apiIdx)
                 .map(api -> {
                     userApiRepository.delete(api);
                     return true;
@@ -48,16 +52,16 @@ public class UserApiService {
 	}
 	
 	@Transactional
-    public void connectApi(String apiURL, Long userIdx) {
-        UserApiEntity api = userApiRepository.findByUserIdxAndApiURL(userIdx, apiURL)
+    public void connectApi(Long apiIdx) {
+        UserApiEntity api = userApiRepository.findByApiIdx(apiIdx)
             .orElseThrow(() -> new RuntimeException("API 키 없음"));
         api.setIsConnected(true);
         userApiRepository.save(api);
     }
 	
 	@Transactional
-    public Boolean disConnectApi(String apiURL, Long userIdx) {
-        UserApiEntity api = userApiRepository.findByUserIdxAndApiURL(userIdx, apiURL)
+    public Boolean disConnectApi(Long apiIdx) {
+        UserApiEntity api = userApiRepository.findByApiIdx(apiIdx)
             .orElseThrow(() -> new RuntimeException("API 키 없음"));
         api.setIsConnected(false);
         userApiRepository.save(api);

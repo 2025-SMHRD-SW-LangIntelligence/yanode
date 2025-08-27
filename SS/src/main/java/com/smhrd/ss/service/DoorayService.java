@@ -1,8 +1,10 @@
 package com.smhrd.ss.service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -16,14 +18,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 public class DoorayService {
 
-	private final String DOORAY_BASE_URL = "https://api.dooray.com"; // 민간 클라우드 기준
+	// 민간 클라우드 기준 Dooray API Base URL
+	private final String DOORAY_BASE_URL = "https://api.dooray.com";
+
 	private final RestTemplate restTemplate = new RestTemplate();
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
+	/**
+	 * 드라이브 연결 (API Key 인증 후 드라이브 목록 반환)
+	 */
 	public List<Map<String, Object>> connectDrive(String apiToken) {
 		try {
 			HttpHeaders headers = new HttpHeaders();
-			headers.set("Authorization", "dooray-api " + apiToken); // API 문서 기준
+			headers.set("Authorization", "dooray-api " + apiToken);
 
 			HttpEntity<String> entity = new HttpEntity<>(null, headers);
 			String url = DOORAY_BASE_URL + "/drive/v1/drives?type=private";
@@ -31,29 +38,50 @@ public class DoorayService {
 			ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
 			if (response.getStatusCode().is2xxSuccessful()) {
-				ObjectMapper mapper = new ObjectMapper();
-				Map<String, Object> resultMap = mapper.readValue(response.getBody(), Map.class);
-				List<Map<String, Object>> drives = (List<Map<String, Object>>) resultMap.get("result");
-				return drives;
+				Map<String, Object> resultMap = objectMapper.readValue(response.getBody(), Map.class);
+				return (List<Map<String, Object>>) resultMap.get("result");
 			} else {
 				return null;
 			}
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
 	}
 
+	/**
+	 * 전체 드라이브 (폴더 + 파일 포함) 조회
+	 */
 	public List<Map<String, Object>> getFullDrive(String apiToken) {
 		try {
 			List<Map<String, Object>> drives = getDrives(apiToken);
 
 			for (Map<String, Object> drive : drives) {
 				String driveId = (String) drive.get("id");
-				List<Map<String, Object>> rootFolders = getFolders(apiToken, driveId, null);
-				drive.put("folders", rootFolders);
+				drive.put("uniqueKey", "drive-" + driveId);
+
+				List<Map<String, Object>> allFolders = (List<Map<String, Object>>) callDoorayApi(apiToken,
+						DOORAY_BASE_URL + "/drive/v1/drives/" + driveId + "/files?type=folder").get("result");
+
+				if (allFolders != null) {
+					for (Map<String, Object> folder : allFolders) {
+						if ("root".equals(folder.get("subType"))) {
+							String rootId = (String) folder.get("id");
+
+							// root 폴더 구조 생성
+							Map<String, Object> root = new java.util.HashMap<>();
+							root.put("id", rootId);
+							root.put("name", drive.get("apiTitle")); // root 이름은 apiTitle
+							root.put("folders", getFolders(apiToken, driveId, rootId, new HashSet<>()));
+							root.put("files", getFiles(apiToken, driveId, rootId));
+
+							drive.put("root", root);
+							break;
+						}
+					}
+				}
 			}
+
 			return drives;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -61,17 +89,21 @@ public class DoorayService {
 		}
 	}
 
-	// 드라이브 목록
+	/**
+	 * 드라이브 목록 조회
+	 */
 	private List<Map<String, Object>> getDrives(String apiToken) throws Exception {
 		String url = DOORAY_BASE_URL + "/drive/v1/drives?type=private";
 		Map<String, Object> response = callDoorayApi(apiToken, url);
 		return (List<Map<String, Object>>) response.get("result");
 	}
 
-	// 폴더 및 하위 파일/폴더 재귀 탐색
-	private List<Map<String, Object>> getFolders(String apiToken, String driveId, String parentId) throws Exception {
-		String url = DOORAY_BASE_URL + "/drive/v1/drives/" + driveId + "/files?type=folder"
-				+ (parentId != null ? "&parentId=" + parentId : "");
+	/**
+	 * 폴더 및 하위 파일/폴더 재귀 탐색
+	 */
+	private List<Map<String, Object>> getFolders(String apiToken, String driveId, String parentId, Set<String> visited)
+			throws Exception {
+		String url = DOORAY_BASE_URL + "/drive/v1/drives/" + driveId + "/files?type=folder&parentId=" + parentId;
 
 		List<Map<String, Object>> folders = (List<Map<String, Object>>) callDoorayApi(apiToken, url).get("result");
 
@@ -81,28 +113,36 @@ public class DoorayService {
 		for (Map<String, Object> folder : folders) {
 			String folderId = (String) folder.get("id");
 
-			if (Boolean.TRUE.equals(folder.get("hasFolders"))) {
-				List<Map<String, Object>> subFolders = getFolders(apiToken, driveId, folderId);
-				folder.put("subFolders", subFolders);
-			}
+			if (visited.contains(folderId))
+				continue;
+			visited.add(folderId);
 
-			List<Map<String, Object>> files = getFiles(apiToken, driveId, folderId);
-			folder.put("files", files);
+			// 📌 하위 폴더 재귀 탐색
+			List<Map<String, Object>> subFolders = getFolders(apiToken, driveId, folderId, visited);
+			folder.put("subFolders", subFolders);
+
+			// 📌 해당 폴더 내 파일
+			folder.put("files", getFiles(apiToken, driveId, folderId));
 		}
 
 		return folders;
 	}
 
-	// 폴더 내 파일 조회
+	/**
+	 * 특정 폴더 내 파일 조회
+	 */
 	private List<Map<String, Object>> getFiles(String apiToken, String driveId, String parentId) throws Exception {
 		String url = DOORAY_BASE_URL + "/drive/v1/drives/" + driveId + "/files?parentId=" + parentId;
 		Map<String, Object> response = callDoorayApi(apiToken, url);
+
 		List<Map<String, Object>> files = (List<Map<String, Object>>) response.get("result");
 		List<Map<String, Object>> onlyFiles = new ArrayList<>();
 
 		if (files != null) {
 			for (Map<String, Object> f : files) {
 				if ("file".equals(f.get("type"))) {
+					String fileId = (String) f.get("id");
+					f.put("uniqueKey", "drive-" + driveId + "-file-" + fileId);
 					onlyFiles.add(f);
 				}
 			}
@@ -110,13 +150,16 @@ public class DoorayService {
 		return onlyFiles;
 	}
 
-	// Dooray API 호출 공통
+	/**
+	 * Dooray API 호출 공통 메서드
+	 */
 	private Map<String, Object> callDoorayApi(String apiToken, String url) throws Exception {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "dooray-api " + apiToken);
-		HttpEntity<String> entity = new HttpEntity<>(null, headers);
 
+		HttpEntity<String> entity = new HttpEntity<>(null, headers);
 		ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
 		return objectMapper.readValue(response.getBody(), Map.class);
 	}
 }

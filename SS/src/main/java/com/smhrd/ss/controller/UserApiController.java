@@ -37,7 +37,7 @@ public class UserApiController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Collections.singletonMap("message", "로그인이 필요합니다."));
         }
-
+        
         String title = request.get("apiTitle");
         String url = request.get("apiURL");
 
@@ -58,28 +58,22 @@ public class UserApiController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Collections.singletonMap("message", "로그인이 필요합니다."));
         }
+        
         List<UserApiEntity> apis = userApiService.getApisByUser(sessionUser.getUserIdx());
         return ResponseEntity.ok(apis);
     }
     
     @DeleteMapping("/deleteApi")
-    public Map<String, String> deleteApi(@RequestParam String apiURL, HttpSession session) {
-        UserEntity user = (UserEntity) session.getAttribute("user");
+    public Map<String, String> deleteApi(@RequestParam Long apiIdx, HttpSession session) {
+    	UserEntity user = (UserEntity) session.getAttribute("user");
         if (user == null) {
         	return Map.of("message", "로그인이 필요합니다.");
         }
-        boolean deleted = userApiService.delete(apiURL, user.getUserIdx());
+        boolean deleted = userApiService.delete(apiIdx);
         if (deleted) {
         	return Map.of("message", "API 키가 삭제되었습니다.");
         } else {
         	return Map.of("message", "API 키를 찾을 수 없습니다.");
         }
-    }
-    
-    @PostMapping("/coonectApi")
-    public ResponseEntity<?> connectApi(@RequestParam String apiURL, HttpSession session) {
-    	UserEntity user = (UserEntity) session.getAttribute("user");
-    	userApiService.connectApi(apiURL, user.getUserIdx());
-    	return ResponseEntity.ok("연결 완료");
     }
 }

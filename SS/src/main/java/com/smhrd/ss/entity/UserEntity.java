@@ -1,5 +1,7 @@
 package com.smhrd.ss.entity;
 
+import java.sql.Timestamp;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -33,5 +35,5 @@ public class UserEntity {
 	
 	@Column(name = "level")
 	private String level;
-	private String joinedAt;
+	private Timestamp joinedAt;
 }
