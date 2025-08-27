@@ -162,4 +162,16 @@ public class DoorayService {
 
 		return objectMapper.readValue(response.getBody(), Map.class);
 	}
+
+	public String getUser(String apiToken, String userId) throws Exception{
+		String url = DOORAY_BASE_URL + "/common/v1/members/" + userId;
+		Map<String, Object> response = callDoorayApi(apiToken, url);
+
+		Map<String, Object> member = (Map<String, Object>) response.get("result");
+		if (member != null) {
+			String memberName = (String) member.get("name");
+			return memberName;
+		}
+		return "-";
+	}
 }

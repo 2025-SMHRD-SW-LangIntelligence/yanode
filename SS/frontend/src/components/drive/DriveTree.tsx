@@ -86,7 +86,7 @@ function FolderNode({
               <span className="text-lg flex-shrink-0">{file.icon}</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">{file.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{file.type} • {file.modified}</p>
+                <p className="text-xs text-muted-foreground truncate">{file.type} • {(file.size / 1024 / 1024).toFixed(1)}MB</p>
               </div>
             </div>
           ))}

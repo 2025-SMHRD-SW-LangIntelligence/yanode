@@ -49,6 +49,7 @@ export default function App() {
           navigate('/login')
         }
       } catch (e) {
+        navigate('/login')
       }
     };
     checkLogin();

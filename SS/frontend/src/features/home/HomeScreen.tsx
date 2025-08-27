@@ -54,7 +54,7 @@ export function HomeScreen({
   const [showApiDropdown, setShowApiDropdown] = useState(false);
   const apiDropdownRef = useRef<HTMLDivElement>(null);
   const { recentFiles, favoriteFiles } = useFileData(files);
-  const { driveFolders, toggleFolder, activeFolderId, selectedFolderIds,
+  const { driveFolders, toggleFolder, fetchDriveFolders, selectedFolderIds,
     toggleSelectCascade, clearSelectedFolders, selectAllFolders, getCheckState } =
     useDriveFolders(apiKeys.find(k => k.isConnected)?.apiURL, files);
   const connectedKeys = apiKeys.filter((key) => key.isConnected);
@@ -69,6 +69,16 @@ export function HomeScreen({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (hasConnectedApiKeys && driveFolders.length === 0) {
+      console.log(driveFolders.length)
+      fetchDriveFolders().then(() => {
+        selectAllFolders();
+      });
+      console.log(driveFolders.length)
+    }
+  }, [hasConnectedApiKeys]);
 
   return (
     <div className="h-screen flex bg-background overflow-hidden">

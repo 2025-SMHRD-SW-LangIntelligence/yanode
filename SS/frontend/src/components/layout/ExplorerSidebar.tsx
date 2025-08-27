@@ -38,9 +38,8 @@ export default function ExplorerSidebar({
   getCheckState?: (id: string) => CheckState;             // ✅ 선언
 }) {
   const [activeTab, setActiveTab] = useState<"recent" | "favorites" | "drive">(activeTabDefault);
-  const currentSidebarFiles =
-    activeTab === "recent" ? recentFiles.slice(0, 6) : favoriteFiles.slice(0, 6);
-
+  const currentSidebarFiles = activeTab === "recent" ? recentFiles.slice(0, 6) : favoriteFiles.slice(0, 6);
+  
   return (
     <div className="w-80 h-full bg-muted border-r-2 border-border flex flex-col">
       {/* 헤더 */}
@@ -142,7 +141,7 @@ export default function ExplorerSidebar({
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {file.type} • {file.modified}
+                        {file.type} • {file.size}
                       </p>
                     </div>
                     {/* 즐겨찾기 버튼은 필요 시 상위에서 prop 추가 */}

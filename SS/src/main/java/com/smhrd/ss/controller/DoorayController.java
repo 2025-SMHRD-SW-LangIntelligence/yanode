@@ -111,4 +111,16 @@ public class DoorayController {
 
         return ResponseEntity.ok(allDrives);
     }
+	
+	@PostMapping("userId")
+	public String getUser(@RequestParam String userId, HttpSession session) throws Exception {
+		UserEntity user = (UserEntity) session.getAttribute("user");
+		List<UserApiEntity> apis = userApiService.getApisIsConnected(user, true);
+		if (user == null) {
+			return "-";
+		}
+		String member = doorayService.getUser(apis.get(0).getApiURL(), userId);
+		return member;
+		
+	}
 }

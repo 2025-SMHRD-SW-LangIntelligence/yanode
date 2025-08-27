@@ -13,73 +13,19 @@ export interface DriveFolder {
 
 type CheckState = 'checked' | 'indeterminate' | 'unchecked';
 
-export function useDriveFolders(apiToken: string | undefined, initialFiles: FileItem[]) {
+export function useDriveFolders(
+  apiToken: string | undefined,
+  initialFiles: FileItem[],
+  onSelectAll?: () => void
+) {
   const [driveFolders, setDriveFolders] = useState<DriveFolder[]>([]);
   const [activeFolderId, setActiveFolderId] = useState<string | undefined>(undefined);
   const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('drive:selected') || '[]'); } catch { return []; }
+    try {
+      const saved = JSON.parse(localStorage.getItem('drive:selected') || '[]');
+      return saved.length ? saved : [];
+    } catch { return []; }
   });
-
-  // API 불러오기 + 변환
-  useEffect(() => {
-    if (!apiToken) return;
-
-    const fetchDriveFolders = async () => {
-      try {
-        const res = await fetch("http://localhost:8090/api/dooray/driveLoading", {
-          method: "POST",
-          credentials: "include",
-        });
-
-        if (!res.ok) {
-          console.error("드라이브 불러오기 실패", await res.text());
-          return;
-        }
-
-        const data = await res.json();
-        console.log(data)
-
-        const transformFolder = (folder: any, driveId?: string): DriveFolder => ({
-          id: folder.id,
-          name: folder.name,
-          driveId,
-          isExpanded: false,
-          files: (folder.files || []).map((f: any) => ({
-            id: f.id,
-            name: f.name,
-            type: f.type,
-            size: f.size,
-            creator : f.creator.organizationMemberId,
-            createdAt : f.createdAt,
-            lastUpdater : f.lastUpdater.organizationMemberId,
-            updatedAt: f.updatedAt,
-            icon: "📄",
-          })),
-          folders: (folder.subFolders || []).map((sub: any) => transformFolder(sub, driveId)),
-        });
-
-        const roots: DriveFolder[] = data.map((apiDrive: any) => ({
-          id: `root-${apiDrive.apiIdx || apiDrive.apiTitle}`,
-          name: apiDrive.apiTitle,
-          isExpanded: true,
-          files: [], // 루트 파일 없으면 빈 배열
-          folders: apiDrive.drives.flatMap((drive: any) => 
-            (drive.root.folders || []).map((f: any) => transformFolder(f, drive.id))
-          ),
-        }));
-
-        setDriveFolders(roots);
-      } catch (err) {
-        console.error("드라이브 API 오류", err);
-      }
-    };
-
-    fetchDriveFolders();
-  }, [apiToken]);
-
-  useEffect(() => {
-    localStorage.setItem('drive:selected', JSON.stringify(selectedFolderIds));
-  }, [selectedFolderIds]);
 
   // ===== 트리 유틸 =====
   const allIds = useMemo(() => {
@@ -93,6 +39,75 @@ export function useDriveFolders(apiToken: string | undefined, initialFiles: File
     walk(driveFolders);
     return ids;
   }, [driveFolders]);
+
+  // API 불러오기 + 변환
+  const fetchDriveFolders = async () => {
+    if (!apiToken) return;
+    try {
+      const res = await fetch("http://localhost:8090/api/dooray/driveLoading", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        console.error("드라이브 불러오기 실패", await res.text());
+        return;
+      }
+
+      const data = await res.json();
+
+      const transformFolder = (folder: any, driveId?: string): DriveFolder => ({
+        id: folder.id,
+        name: folder.name,
+        driveId,
+        isExpanded: false,
+        files: (folder.files || []).map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          type: f.name.split(".").pop() || '',
+          size: f.size,
+          creator: f.creator.organizationMemberId,
+          createdAt: f.createdAt,
+          lastUpdater: f.lastUpdater.organizationMemberId,
+          updatedAt: f.updatedAt,
+          icon: "📄",
+        })),
+        folders: (folder.subFolders || []).map((sub: any) => transformFolder(sub, driveId)),
+      });
+
+      const roots: DriveFolder[] = data.map((apiDrive: any) => ({
+        id: `root-${apiDrive.apiIdx || apiDrive.apiTitle}`,
+        name: apiDrive.apiTitle,
+        isExpanded: true,
+        files: [], // 루트 파일 없으면 빈 배열
+        folders: apiDrive.drives.flatMap((drive: any) =>
+          (drive.root.folders || []).map((f: any) => transformFolder(f, drive.id))
+        ),
+      }));
+
+      setDriveFolders(roots);
+    } catch (err) {
+      console.error("드라이브 API 오류", err);
+    }
+  };
+
+  useEffect(() => {
+    localStorage.setItem('drive:folders', JSON.stringify(driveFolders));
+  }, [driveFolders]);
+
+  useEffect(() => {
+    const savedSelected = localStorage.getItem('drive:selected');
+
+    if ((!savedSelected || JSON.parse(savedSelected).length === 0) && driveFolders.length) {
+      // 선택값 없으면 전체 선택
+      if (onSelectAll) onSelectAll();        // ✅ ExplorerSidebar의 onSelectAll 실행
+      setSelectedFolderIds(allIds);          // 내부 상태도 전체 선택
+    }
+  }, [driveFolders, allIds, onSelectAll]);
+
+  useEffect(() => {
+    localStorage.setItem('drive:selected', JSON.stringify(selectedFolderIds));
+  }, [selectedFolderIds]);
 
   const getDescendantIds = (id: string): string[] => {
     const out: string[] = [];
@@ -171,5 +186,6 @@ export function useDriveFolders(apiToken: string | undefined, initialFiles: File
     clearSelectedFolders,
     selectAllFolders,
     getCheckState,
+    fetchDriveFolders
   };
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { 
   X, 
@@ -25,10 +25,18 @@ interface FilePreviewDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onToggleFavorite: (fileId: string) => void;
+  findUser : () => void;
 }
 
-export function FilePreviewDrawer({ file, isOpen, onClose, onToggleFavorite }: FilePreviewDrawerProps) {
+export function FilePreviewDrawer({ 
+  file, 
+  isOpen, 
+  onClose, 
+  onToggleFavorite 
+}: FilePreviewDrawerProps) {
   const [showActions, setShowActions] = useState(false);
+  const [creator, setCreator] = useState<string>('로딩중...');
+  const [lastUpdater, setLastUpdater] = useState<string>('로딩중...');
 
   if (!isOpen) return null;
 
@@ -51,6 +59,33 @@ export function FilePreviewDrawer({ file, isOpen, onClose, onToggleFavorite }: F
     { name: '참고 자료.xlsx', type: 'Excel', modified: '2024-03-05', icon: '📊' }
   ];
 
+  const findUser = async (userId : string) => {
+    try {
+      const res = await fetch(`http://localhost:8090/api/dooray/userId?userId=${userId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      })
+      const data = await res.text();
+      return data ?? "-";
+    } catch(e) {
+      return "-";
+    }
+  }
+  useEffect(() => {
+    const loadUsers = async () => {
+      const creator = await findUser(file.creator)
+      const updater = await findUser(file.lastUpdater)
+
+      setCreator(creator);
+      setLastUpdater(updater);
+    };
+
+    loadUsers();
+  }, [file]);
+
   return (
     <div className="fixed inset-0 z-50 flex">
       {/* 배경 오버레이 */}
@@ -71,7 +106,7 @@ export function FilePreviewDrawer({ file, isOpen, onClose, onToggleFavorite }: F
                   {file.name}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {file.type} • {file.size}
+                  {file.type} • {(file.size / 1024 / 1024).toFixed(1)}MB
                 </p>
               </div>
             </div>
@@ -172,7 +207,7 @@ export function FilePreviewDrawer({ file, isOpen, onClose, onToggleFavorite }: F
                         <Calendar className="w-5 h-5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium text-foreground">생성자</p>
-                          <p className="text-sm text-muted-foreground">{file.creator}</p>
+                          <p className="text-sm text-muted-foreground">{creator}</p>
                         </div>
                       </div>
                       
@@ -219,7 +254,7 @@ export function FilePreviewDrawer({ file, isOpen, onClose, onToggleFavorite }: F
                         <Tag className="w-5 h-5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium text-foreground">수정자</p>
-                          <p className="text-sm text-muted-foreground">{file.lastUpdater}</p>
+                          <p className="text-sm text-muted-foreground">{lastUpdater}</p>
                         </div>
                       </div>
                       
@@ -240,38 +275,6 @@ export function FilePreviewDrawer({ file, isOpen, onClose, onToggleFavorite }: F
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* 관련 파일 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">관련 파일</h3>
-                <div className="space-y-3">
-                  {relatedFiles.map((relatedFile, index) => (
-                    <div
-                      key={index}
-                      className="bg-card p-4 rounded-xl border border-border hover:bg-accent transition-all cursor-pointer card-hover"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <span className="text-xl">{relatedFile.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">
-                            {relatedFile.name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {relatedFile.type} • {relatedFile.modified}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-muted-foreground hover:text-foreground w-8 h-8 p-0"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>

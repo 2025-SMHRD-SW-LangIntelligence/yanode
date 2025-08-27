@@ -26,7 +26,7 @@ public class UserService {
 		if (userRepository.existsByEmailAndOAuth(entity.getEmail(), entity.getOAuth())) {
 			return "fail";
 		}
-		UserEntity e = userRepository.save(entity);
+		userRepository.save(entity);
 		return "success";
 	}
 	

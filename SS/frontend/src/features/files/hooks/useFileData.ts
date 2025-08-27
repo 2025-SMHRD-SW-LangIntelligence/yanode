@@ -4,7 +4,7 @@ import type { FileItem } from '../../../types';
 export function useFileData(files: FileItem[]) {
   const recentFiles = useMemo(() => {
     const order = ['2시간 전', '5시간 전', '1일 전', '2일 전', '3일 전', '1주 전'];
-    return [...files].sort((a, b) => order.indexOf(a.modified) - order.indexOf(b.modified));
+    return [...files].sort((a, b) => order.indexOf(a.lastUpdater) - order.indexOf(b.lastUpdater));
   }, [files]);
 
   const favoriteFiles = useMemo(() => files.filter(f => f.isFavorite), [files]);
@@ -23,7 +23,7 @@ export function useFileData(files: FileItem[]) {
       const name = file.name.toLowerCase();
       const path = file.path.toLowerCase();
       const type = file.type.toLowerCase();
-      const modifiedBy = file.modifiedBy.toLowerCase();
+      const modifiedBy = file.lastUpdater.toLowerCase();
       if (name.includes(term)) { score += 10; if (name.startsWith(term)) score += 5; }
       if (path.includes(term)) score += 8;
       if (type.includes(term)) score += 6;
