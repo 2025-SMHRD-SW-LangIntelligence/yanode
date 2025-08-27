@@ -20,8 +20,8 @@ export default function ExplorerSidebar({
   selectedFolderIds,
   onToggleSelectFolder,
   onClearSelection,
-  onSelectAll,          // ✅ 추가
-  getCheckState,        // ✅ 추가
+  onSelectAll,
+  getCheckState,
 }: {
   recentFiles: FileItem[];
   favoriteFiles: FileItem[];
@@ -34,12 +34,12 @@ export default function ExplorerSidebar({
   selectedFolderIds?: string[];
   onToggleSelectFolder?: (id: string, parentId?: string) => void;
   onClearSelection?: () => void;
-  onSelectAll?: () => void;                               // ✅ 선언
-  getCheckState?: (id: string) => CheckState;             // ✅ 선언
+  onSelectAll?: () => void;
+  getCheckState?: (id: string) => CheckState;
 }) {
   const [activeTab, setActiveTab] = useState<"recent" | "favorites" | "drive">(activeTabDefault);
   const currentSidebarFiles = activeTab === "recent" ? recentFiles.slice(0, 6) : favoriteFiles.slice(0, 6);
-  
+
   return (
     <div className="w-80 h-full bg-muted border-r-2 border-border flex flex-col">
       {/* 헤더 */}
@@ -63,33 +63,30 @@ export default function ExplorerSidebar({
         <div className="flex space-x-1 bg-accent rounded-lg p-1 border border-border mb-4">
           <button
             onClick={() => setActiveTab("recent")}
-            className={`flex-1 flex items-center justify-center space-x-1 py-2 px-2 rounded-md text-xs font-medium ${
-              activeTab === "recent"
-                ? "bg-background text-foreground shadow-sm border border-border"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex-1 flex items-center justify-center space-x-1 py-2 px-2 rounded-md text-xs font-medium ${activeTab === "recent"
+              ? "bg-background text-foreground shadow-sm border border-border"
+              : "text-muted-foreground hover:text-foreground"
+              }`}
           >
             <Clock className="w-3 h-3" />
             <span>최근</span>
           </button>
           <button
             onClick={() => setActiveTab("favorites")}
-            className={`flex-1 flex items-center justify-center space-x-1 py-2 px-2 rounded-md text-xs font-medium ${
-              activeTab === "favorites"
-                ? "bg-background text-foreground shadow-sm border border-border"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex-1 flex items-center justify-center space-x-1 py-2 px-2 rounded-md text-xs font-medium ${activeTab === "favorites"
+              ? "bg-background text-foreground shadow-sm border border-border"
+              : "text-muted-foreground hover:text-foreground"
+              }`}
           >
             <Star className="w-3 h-3" />
             <span>즐겨찾기</span>
           </button>
           <button
             onClick={() => setActiveTab("drive")}
-            className={`flex-1 flex items-center justify-center space-x-1 py-2 px-2 rounded-md text-xs font-medium ${
-              activeTab === "drive"
-                ? "bg-background text-foreground shadow-sm border border-border"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex-1 flex items-center justify-center space-x-1 py-2 px-2 rounded-md text-xs font-medium ${activeTab === "drive"
+              ? "bg-background text-foreground shadow-sm border border-border"
+              : "text-muted-foreground hover:text-foreground"
+              }`}
           >
             <HardDrive className="w-3 h-3" />
             <span>드라이브</span>
@@ -123,7 +120,7 @@ export default function ExplorerSidebar({
               toggleFolder={toggleFolder}
               onFileSelect={onFileSelect}
               selectedFolderIds={selectedFolderIds}
-              onToggleCascade={onToggleSelectFolder}  // ✅ DriveTree가 기대하는 이름으로 전달
+              onToggleCascade={onToggleSelectFolder}
               getCheckState={getCheckState}
             />
           </div>
