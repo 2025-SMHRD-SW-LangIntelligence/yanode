@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../ui/button";
-import { Clock, Star, HardDrive, Folder, FolderOpen, ChevronRight, ChevronDown } from "lucide-react";
+import { Clock, Star, HardDrive, Folder, FolderOpen, ChevronRight, ChevronDown, RefreshCw, Loader2 } from "lucide-react";
 import DriveTree from "../drive/DriveTree";
 import type { FileItem } from "../../types";
 import type { DriveFolder } from "../../features/files/hooks/useDriveFolders";
@@ -72,10 +72,21 @@ export default function ExplorerSidebar({
   const [activeTab, setActiveTab] = useState<"recent" | "favorites" | "drive">(activeTabDefault);
   const currentSidebarFiles =
     activeTab === "recent" ? recentFiles.slice(0, 6) : favoriteFiles.slice(0, 6);
+  const [reloadTick, setReloadTick] = useState(0);
+  const [loadingDots, setLoadingDots] = useState(0);
 
   // ====== 내부 드라이브 상태 (외부 미제공 시 자동 로딩) ======
   const [loading, setLoading] = useState(false);
   const [driveFoldersLocal, setDriveFoldersLocal] = useState<DriveFolder[] | null>(null);
+
+
+  useEffect(() => {
+    if (!loading) return;                // 로딩 아닐 땐 동작 안 함
+    const id = setInterval(() => {
+      setLoadingDots(d => (d + 1) % 4);  // 0→1→2→3→0 순환
+    }, 400);
+    return () => clearInterval(id);
+  }, [loading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,8 +113,14 @@ export default function ExplorerSidebar({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiEndpointBase, driveFoldersProp]);
+  }, [apiEndpointBase, driveFoldersProp, reloadTick]); // ← reloadTick 추가
+
+  const handleRefresh = () => {
+    if (loading) return;           // 로딩 중 중복 클릭 방지
+    setDriveFoldersLocal(null);    // 깔끔하게 "로딩 중..." 표시하려면 비워두기 (선택)
+    setReloadTick(t => t + 1);     // useEffect 재실행 트리거
+  };
+
 
   // 최종 드라이브 데이터 소스
   const driveFolders = useMemo<DriveFolder[] | null>(() => {
@@ -253,21 +270,47 @@ export default function ExplorerSidebar({
             {/* 선택 요약/버튼 */}
             <div className="flex items-center justify-between px-1 py-2 text-xs text-muted-foreground">
               <span>선택된 폴더: {selectedFolderIds?.length ?? 0}</span>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <button className="underline hover:text-foreground" onClick={onSelectAll}>전체선택</button>
                 <button className="underline hover:text-foreground" onClick={onClearSelection}>초기화</button>
+
+                {/* 새로고침 버튼 추가 */}
+                <button
+                  className="inline-flex items-center gap-1 underline hover:text-foreground disabled:opacity-50"
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  aria-label="드라이브 다시 불러오기"
+                  title="드라이브 다시 불러오기"
+                >
+                  <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+
+                </button>
               </div>
+
             </div>
 
             {/* 드라이브 트리 */}
             {!driveFolders ? (
-              <div className="text-center text-xs text-muted-foreground py-6">
-                {loading ? "드라이브 로딩 중..." : "드라이브 데이터가 없습니다."}
+              <div className="text-center text-xs text-muted-foreground py-6" aria-live="polite">
+                {loading ? (
+                  <div className="inline-flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    <span className="animate-pulse">
+                      드라이브 로딩 중
+                      <span className="inline-block" aria-hidden="true">
+                        {".".repeat(loadingDots)}
+                      </span>
+                    </span>
+                  </div>
+                ) : (
+                  "드라이브 데이터가 없습니다."
+                )}
               </div>
+
             ) : (
               // 렌더 부분
               <DriveTree
-                driveFolders={driveFolders!}   
+                driveFolders={driveFolders!}
                 toggleFolder={toggleFolder}
                 onFileSelect={onFileSelect}
                 selectedFolderIds={selectedFolderIds}
