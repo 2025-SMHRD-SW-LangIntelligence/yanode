@@ -27,11 +27,7 @@ public class UserService {
 			return "fail";
 		}
 		UserEntity e = userRepository.save(entity);
-		if (e != null) {
-			return "success";
-		} else {
-			return "fail";
-		}
+		return "success";
 	}
 	
 	public UserEntity login(UserEntity entity) {		
