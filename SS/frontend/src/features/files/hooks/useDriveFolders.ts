@@ -48,13 +48,12 @@ export function useDriveFolders(
         method: "POST",
         credentials: "include",
       });
-
       if (!res.ok) {
         console.error("드라이브 불러오기 실패", await res.text());
         return;
       }
-
       const data = await res.json();
+      console.log(data)
 
       const transformFolder = (folder: any, driveId?: string): DriveFolder => ({
         id: folder.id,

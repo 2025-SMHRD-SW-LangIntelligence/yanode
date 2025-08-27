@@ -72,11 +72,9 @@ export function HomeScreen({
 
   useEffect(() => {
     if (hasConnectedApiKeys && driveFolders.length === 0) {
-      console.log(driveFolders.length)
       fetchDriveFolders().then(() => {
         selectAllFolders();
       });
-      console.log(driveFolders.length)
     }
   }, [hasConnectedApiKeys]);
 
