@@ -27,7 +27,7 @@ import jakarta.servlet.http.HttpSession;
 public class DoorayController {
 
     private final SecurityConfig securityConfig;
-
+ 
 	@Autowired
 	private DoorayService doorayService;
 
