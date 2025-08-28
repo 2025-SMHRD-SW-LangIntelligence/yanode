@@ -1,5 +1,4 @@
-// src/components/FileSearchModal.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -20,6 +19,7 @@ import {
   Star
 } from 'lucide-react';
 import type { FileItem } from '../../types';
+import { findUser } from './utils/findUser';
 
 interface FileSearchModalProps {
   isOpen: boolean;
@@ -27,23 +27,18 @@ interface FileSearchModalProps {
   onFileSelect: (file: FileItem) => void;
   files: FileItem[];
   onToggleFavorite: (fileId: string) => void;
+  zIndex?: number;
 }
-
-const recentQueries = [
-  '2023년 발표자료',
-  '홍길동 계약서',
-  '송무 관련 PDF',
-  '회의록 요약본',
-  '신제품 기획서'
-];
 
 export function FileSearchModal({
   isOpen,
   onClose,
   onFileSelect,
   files,
-  onToggleFavorite
-}: FileSearchModalProps) {
+  onToggleFavorite,
+  zIndex = 50,
+  disableBackdropClick = false,
+}: FileSearchModalProps & { disableBackdropClick?: boolean }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [fileType, setFileType] = useState('all');
   const [owner, setOwner] = useState('all');
@@ -51,6 +46,36 @@ export function FileSearchModal({
   const [searchResults, setSearchResults] = useState<FileItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [recentQueries, setRecentQueries] = useState<string[]>(() => {
+    const saved = localStorage.getItem('recentQueries');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [uniqueAuthors, setUniqueAuthors] = useState<{ id: string; name: string; }[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchUniqueAuthors = async () => {
+      // files에서 lastUpdater(ID)만 뽑아서 중복 제거
+      const uniqueIds = Array.from(new Set(files.map(f => f.lastUpdater)));
+
+      // 각 ID를 findUser로 조회
+      const names = await Promise.all(
+        uniqueIds.map(async (id) => {
+          if (!id) return { id: "-", name: "-" };
+          const name = await findUser(id);
+          return { id, name };
+        })
+      );
+      if (isMounted) {
+        setUniqueAuthors(names); // 중복 제거는 이미 ID 기준으로 했으므로 names 그대로
+      }
+    };
+    fetchUniqueAuthors();
+    return () => {
+      isMounted = false;
+    };
+  }, [files]);
 
   const getFileIcon = (icon: string | undefined, type: string) => {
     if (icon && icon !== type) {
@@ -73,27 +98,54 @@ export function FileSearchModal({
     }
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const handleSearch = async (queryParam?: string) => {
+    const query = String(queryParam ?? searchQuery);
+    if (!query.trim()) return;
     setIsSearching(true);
 
     setTimeout(() => {
       let filtered = files.filter(f =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        f.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        f.modifiedBy.toLowerCase().includes(searchQuery.toLowerCase())
+        f.name.toLowerCase().includes(query.toLowerCase()) ||
+        f.type.toLowerCase().includes(query.toLowerCase()) ||
+        f.lastUpdater?.toLowerCase().includes(query.toLowerCase())
       );
 
       if (fileType !== 'all') {
-        filtered = filtered.filter(f => f.type.toLowerCase() === fileType.toLowerCase());
-      }
+        const typeMap: Record<string, string[]> = {
+          pdf: ['pdf'],
+          word: ['doc', 'docx'],
+          powerpoint: ['ppt', 'pptx'],
+          excel: ['xls', 'xlsx'],
+          hwp: ['hwp'],
+          txt: ['txt'],
+        };
+        filtered = filtered.filter(f => {
+          const type = f.type.toLowerCase();
+          return typeMap[fileType.toLowerCase()]?.includes(type);
+      })};
       if (owner !== 'all') {
-        filtered = filtered.filter(f => f.modifiedBy === owner);
+        filtered = filtered.filter(f => f.lastUpdater === owner);
+      }
+      if (dateRange.from || dateRange.to) {
+        filtered = filtered.filter(f => {
+          if (!f.updatedAt) return false;
+          const updatedAt = new Date(f.updatedAt);
+          const fromOk = dateRange.from ? updatedAt >= dateRange.from : true;
+          const toOk = dateRange.to ? updatedAt <= new Date(new Date(dateRange.to).setHours(23, 59, 59, 999)) : true;
+          return fromOk && toOk;
+        });
       }
 
       setSearchResults(filtered);
       setIsSearching(false);
-    }, 500);
+
+      setRecentQueries(prev => {
+        const updated = [query, ...prev.filter(q => q !== query)]; // 중복 제거 후 앞에 추가
+        const sliced = updated.slice(0, 10); // 최대 10개
+        localStorage.setItem('recentQueries', JSON.stringify(sliced)); // localStorage에 저장
+        return sliced;
+      });
+    }, 100);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -105,7 +157,7 @@ export function FileSearchModal({
 
   const handleQuerySelect = (query: string) => {
     setSearchQuery(query);
-    handleSearch();
+    handleSearch(query);
   };
 
   const clearFilters = () => {
@@ -114,11 +166,14 @@ export function FileSearchModal({
     setDateRange({});
   };
 
-  const uniqueAuthors = Array.from(new Set(files.map(f => f.modifiedBy)));
-
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col glass-strong border border-white/20">
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !disableBackdropClick) onClose(); }}>
+      <DialogContent
+        className="max-w-4xl h-[80vh] flex flex-col glass-strong border border-white/20"
+        style={{ zIndex }}
+        onClick={(e) => {
+          if (disableBackdropClick) e.stopPropagation();
+        }}>
         <DialogHeader>
           <DialogTitle className="text-gray-900 dark:text-white">파일 검색</DialogTitle>
           <DialogDescription className="text-gray-600 dark:text-gray-400">
@@ -137,7 +192,10 @@ export function FileSearchModal({
               className="flex-1 bg-white/80 dark:bg-gray-800/80 border border-white/20"
             />
             <Button
-              onClick={handleSearch}
+              onClick={(e) => {
+                e.preventDefault();
+                handleSearch(); // queryParam 없이 호출
+              }}
               disabled={!searchQuery.trim() || isSearching}
               className="bg-gradient-primary hover:shadow-lg btn-glow text-white border-0"
             >
@@ -185,6 +243,8 @@ export function FileSearchModal({
                       <SelectItem value="word">Word</SelectItem>
                       <SelectItem value="powerpoint">PowerPoint</SelectItem>
                       <SelectItem value="excel">Excel</SelectItem>
+                      <SelectItem value="hwp">Hwp</SelectItem>
+                      <SelectItem value="txt">TxT</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -198,7 +258,7 @@ export function FileSearchModal({
                     <SelectContent className="glass-strong border border-white/20">
                       <SelectItem value="all">모든 사용자</SelectItem>
                       {uniqueAuthors.map((author) => (
-                        <SelectItem key={author} value={author}>{author}</SelectItem>
+                        <SelectItem key={author.id} value={author.id}>{author.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -241,7 +301,7 @@ export function FileSearchModal({
         </div>
 
         {/* Search Results */}
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 overflow-auto" style={{maxHeight: '60vh'}}>
           {isSearching ? (
             <div className="flex items-center justify-center py-12">
               <div className="flex items-center space-x-2">
@@ -265,11 +325,9 @@ export function FileSearchModal({
                         <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                           <span>{file.type}</span>
                           <span>•</span>
-                          <span>{file.size}</span>
+                          <span>{(file.size / 1024 / 1024).toFixed(1)}MB</span>
                           <span>•</span>
-                          <span>{file.modified}</span>
-                          <span>•</span>
-                          <span>{file.modifiedBy}</span>
+                          <span>{file.updatedAt ? new Date(file.updatedAt).toLocaleString() : '-'}</span>
                         </div>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{file.path}</p>
                       </div>
@@ -285,11 +343,10 @@ export function FileSearchModal({
                         className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 p-0 hover:bg-white/20"
                       >
                         <Star
-                          className={`w-4 h-4 ${
-                            file.isFavorite
-                              ? 'text-yellow-500 fill-yellow-500'
-                              : 'text-gray-400 hover:text-yellow-500'
-                          }`}
+                          className={`w-4 h-4 ${file.isFavorite
+                            ? 'text-yellow-500 fill-yellow-500'
+                            : 'text-gray-400 hover:text-yellow-500'
+                            }`}
                         />
                       </Button>
                       <Button

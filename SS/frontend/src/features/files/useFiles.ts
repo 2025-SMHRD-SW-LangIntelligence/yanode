@@ -1,12 +1,17 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import type { FileItem, FilesHookReturn } from '../../types';
-import { initialFiles } from './mockData';
+import type { DriveFolder } from '../../features/files/hooks/useDriveFolders';
+import { flattenDriveFiles } from './utils/flattenDriveFiles';
 
 
-export function useFiles(): FilesHookReturn {
-  const [files, setFiles] = useState<FileItem[]>(initialFiles);
+export function useFiles(driveFolders: DriveFolder[]): FilesHookReturn {
+  const [files, setFiles] = useState<FileItem[]>(() => flattenDriveFiles(driveFolders ?? []));
   const [showPreviewDrawer, setShowPreviewDrawer] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+
+  useEffect(() => {
+    setFiles(flattenDriveFiles(driveFolders ?? []));
+  }, [driveFolders]);
 
   const handleFileSelect = useCallback((file: FileItem) => {
     setSelectedFile(file);
@@ -19,9 +24,9 @@ export function useFiles(): FilesHookReturn {
   }, []);
 
   const handleToggleFavorite = useCallback((fileId: string) => {
-    setFiles(prevFiles => 
-      prevFiles.map(file => 
-        file.id === fileId 
+    setFiles(prevFiles =>
+      prevFiles.map(file =>
+        file.id === fileId
           ? { ...file, isFavorite: !file.isFavorite }
           : file
       )
@@ -33,7 +38,7 @@ export function useFiles(): FilesHookReturn {
     const totalFiles = files.length;
     const favoriteFiles = files.filter(file => file.isFavorite);
     const recentFiles = files.slice(0, 5);
-    
+
     return {
       totalFiles,
       favoriteFiles,

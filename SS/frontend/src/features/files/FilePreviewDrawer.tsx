@@ -19,20 +19,22 @@ import {
   MessageSquare
 } from 'lucide-react';
 import type { FileItem} from '../../types';
+import { findUser } from './utils/findUser';
 
 interface FilePreviewDrawerProps {
   file: FileItem;
   isOpen: boolean;
   onClose: () => void;
   onToggleFavorite: (fileId: string) => void;
-  findUser : () => void;
+  zIndex? : number;
 }
 
 export function FilePreviewDrawer({ 
   file, 
   isOpen, 
   onClose, 
-  onToggleFavorite 
+  onToggleFavorite ,
+  zIndex = 100,
 }: FilePreviewDrawerProps) {
   const [showActions, setShowActions] = useState(false);
   const [creator, setCreator] = useState<string>('로딩중...');
@@ -59,35 +61,19 @@ export function FilePreviewDrawer({
     { name: '참고 자료.xlsx', type: 'Excel', modified: '2024-03-05', icon: '📊' }
   ];
 
-  const findUser = async (userId : string) => {
-    try {
-      const res = await fetch(`http://localhost:8090/api/dooray/userId?userId=${userId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      })
-      const data = await res.text();
-      return data ?? "-";
-    } catch(e) {
-      return "-";
-    }
-  }
   useEffect(() => {
     const loadUsers = async () => {
-      const creator = await findUser(file.creator)
-      const updater = await findUser(file.lastUpdater)
-
-      setCreator(creator);
-      setLastUpdater(updater);
+      const creatorName = await findUser(file.creator);
+      const updaterName = await findUser(file.lastUpdater);
+      setCreator(creatorName);
+      setLastUpdater(updaterName);
     };
-
     loadUsers();
   }, [file]);
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-50 flex pointer-events-auto"
+    style={{ zIndex }}>
       {/* 배경 오버레이 */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"

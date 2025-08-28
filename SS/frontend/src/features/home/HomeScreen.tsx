@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import {
@@ -22,8 +22,10 @@ import type { FileItem, ApiKey } from '../../types';
 import { FileSearchModal } from '../files/FileSearchModal';
 import { useFileData } from '../files/hooks/useFileData';
 import { useDriveFolders } from '../files/hooks/useDriveFolders';
+import { useFiles } from '../../features/files/useFiles';
 import type { DriveFolder } from '../files/hooks/useDriveFolders';
 import { useApiKeys } from '../settings/useApiKeys';
+import { FilePreviewDrawer } from '../../features/files/FilePreviewDrawer';
 
 interface HomeScreenProps {
   onNavigateToChat: () => void;
@@ -58,6 +60,10 @@ export function HomeScreen({
     toggleSelectCascade, clearSelectedFolders, selectAllFolders, getCheckState } =
     useDriveFolders(apiKeys.find(k => k.isConnected)?.apiURL, files);
   const connectedKeys = apiKeys.filter((key) => key.isConnected);
+  const filesHook = useFiles(driveFolders);
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const showPreviewDrawer = !!selectedFile;
+  const handleClosePreview = () => setSelectedFile(null);
 
   // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
@@ -78,6 +84,10 @@ export function HomeScreen({
     }
   }, [hasConnectedApiKeys]);
 
+  const handleFileSelect = (file: FileItem) => {
+    setSelectedFile(file);
+  }
+
   return (
     <div className="h-screen flex bg-background overflow-hidden">
       {/* 사이드바 */}
@@ -90,7 +100,7 @@ export function HomeScreen({
           favoriteFiles={favoriteFiles}
           driveFolders={driveFolders}
           toggleFolder={toggleFolder}
-          onFileSelect={(file) => onFileSelect?.(file)}
+          onFileSelect={handleFileSelect}
           activeTabDefault="recent"
           onClose={() => setSidebarOpen(false)}
           selectedFolderIds={selectedFolderIds}  // ✅ 선택 상태 전달
@@ -133,7 +143,6 @@ export function HomeScreen({
                   onClick={() => {
                     if (hasConnectedApiKeys) {
                       setShowApiDropdown(!showApiDropdown);
-                      console.log(connectedKeys)
                     } else {
                       onOpenSettings('security');
                     }
@@ -317,7 +326,10 @@ export function HomeScreen({
                 {recentFiles.slice(0, 8).map((file) => (
                   <div
                     key={file.id}
-                    onClick={() => onFileSelect?.(file)}
+                    onClick={() => {
+                      onFileSelect?.(file);
+                      setSelectedFile(file);
+                    }}
                     className="group bg-background border-2 border-border rounded-xl p-4 cursor-pointer transition-all hover:bg-accent card-hover shadow-clean overflow-hidden"
                   >
                     <div className="flex items-start justify-between mb-3 gap-2">
@@ -346,8 +358,8 @@ export function HomeScreen({
                       </Button>
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground gap-2">
-                      <span className="truncate flex-1">{file.modifiedBy}</span>
-                      <span className="flex-shrink-0">{file.modified}</span>
+                      <span className="truncate flex-1">{file.lastUpdater}</span>
+                      <span className="flex-shrink-0">{file.updatedAt ? new Date(file.updatedAt).toLocaleString() : '-'}</span>
                     </div>
                   </div>
                 ))}
@@ -362,12 +374,20 @@ export function HomeScreen({
         <FileSearchModal
           isOpen={showFileModal}
           onClose={() => setShowFileModal(false)}
-          files={files}
-          onFileSelect={(file) => {
-            onFileSelect?.(file);
-            setShowFileModal(false);
-          }}
+          files={filesHook.files}
+          onFileSelect={handleFileSelect}
           onToggleFavorite={onToggleFavorite}
+          zIndex={50}
+          disableBackdropClick={!!selectedFile}
+        />
+      )}
+      {selectedFile && (
+        <FilePreviewDrawer
+          isOpen={showPreviewDrawer}
+          file={selectedFile}
+          onClose={handleClosePreview}
+          onToggleFavorite={onToggleFavorite}
+          zIndex={100}
         />
       )}
     </div>

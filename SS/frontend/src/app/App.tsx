@@ -115,15 +115,6 @@ export default function App() {
   // --- 데스크톱 라우팅 ---
   return (
     <>
-      {selectedFile && (
-        <FilePreviewDrawer
-          isOpen={showPreviewDrawer}
-          file={selectedFile}
-          onClose={handleClosePreview}
-          onToggleFavorite={onToggleFavorite}
-        />
-      )}
-
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginScreen onLogin={() => navigate('/onboarding')} onSignupClick={() => navigate('/signup')} />} />

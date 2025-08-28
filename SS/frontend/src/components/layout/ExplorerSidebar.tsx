@@ -4,7 +4,8 @@ import { Clock, Star, HardDrive } from "lucide-react";
 import DriveTree from "../drive/DriveTree";
 import type { FileItem } from "../../types";
 import type { DriveFolder } from "../../features/files/hooks/useDriveFolders";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { FileSearchModal } from "../../features/files/FileSearchModal";
 
 type CheckState = "checked" | "indeterminate" | "unchecked";
 
