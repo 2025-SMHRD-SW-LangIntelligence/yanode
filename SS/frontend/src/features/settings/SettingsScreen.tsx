@@ -34,10 +34,11 @@ import {
   Unplug,
   Plug,
   CheckCircle,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
-import ChangePasswordModal from "../settings/ChangePassword"; 
+import ChangePasswordModal from "../settings/ChangePassword";
 
 
 
@@ -80,6 +81,12 @@ export function SettingsScreen({
   const [editingApiKey, setEditingApiKey] = useState<{ id: string; name: string; key: string } | null>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [apiKeys, setApiKeys] = useState<UserApi[]>([]);
+  // API 연결/해제 진행 중인 항목을 apiURL로 관리
+  const [connecting, setConnecting] = useState<Record<string, { type: 'connect' | 'disconnect'; start: number }>>({});
+  // 1초마다 갱신되는 현재 시각(타이머 표시용)
+  const [now, setNow] = useState<number>(Date.now());
+
+
 
   interface UserApi {
     apiIdx: number;
@@ -116,6 +123,20 @@ export function SettingsScreen({
   };
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  const getElapsedSec = (apiURL: string) => {
+    const e = connecting[apiURL];
+    if (!e) return 0;
+    return Math.floor((now - e.start) / 1000);
+  };
+
+
+  useEffect(() => {
+    if (Object.keys(connecting).length === 0) return; // 진행중 없으면 인터벌 안 돌림
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [connecting]);
+
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -230,13 +251,13 @@ export function SettingsScreen({
   };
 
   const onConnectApiKey = async (apiURL: string) => {
+    // 진행 시작 표시
+    setConnecting(prev => ({ ...prev, [apiURL]: { type: 'connect', start: Date.now() } }));
     try {
       const encodeToken = encodeURIComponent(apiURL);
       const res = await fetch(`http://localhost:8090/api/dooray/driveConnect?apiURL=${encodeToken}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
       });
 
@@ -250,26 +271,40 @@ export function SettingsScreen({
       );
       alert("연결 성공!");
     } catch (err) {
+      console.error(err);
       alert('연결 실패!');
+    } finally {
+      // 진행 종료 표시
+      setConnecting(prev => {
+        const { [apiURL]: _, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
+
   const onDisconnectApiKey = async (apiURL: string) => {
+    setConnecting(prev => ({ ...prev, [apiURL]: { type: 'disconnect', start: Date.now() } }));
     try {
-      await fetch(`http://localhost:8090/api/dooray/driveDisconnect?apiURL=${apiURL}`, {
+      await fetch(`http://localhost:8090/api/dooray/driveDisconnect?apiURL=${encodeURIComponent(apiURL)}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
       });
       setApiKeys(prev =>
         prev.map(api => api.apiURL === apiURL ? { ...api, isConnected: false } : api)
       );
     } catch (err) {
-      console.log("실패")
+      console.error(err);
+      alert('해제 실패!');
+    } finally {
+      setConnecting(prev => {
+        const { [apiURL]: _, ...rest } = prev;
+        return rest;
+      });
     }
   };
+
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -592,14 +627,39 @@ export function SettingsScreen({
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => api.isConnected ? onDisconnectApiKey(api.apiURL) : onConnectApiKey(api.apiURL)}
+                                  onClick={() =>
+                                    api.isConnected ? onDisconnectApiKey(api.apiURL) : onConnectApiKey(api.apiURL)
+                                  }
+                                  disabled={!!connecting[api.apiURL]} // 진행 중이면 비활성화
                                   className={`w-8 h-8 p-0 rounded-lg ${api.isConnected
-                                    ? 'text-red-500 hover:text-red-700 hover:bg-red-100/20'
-                                    : 'text-green-500 hover:text-green-700 hover:bg-green-100/20'
-                                    }`}
+                                      ? 'text-red-500 hover:text-red-700 hover:bg-red-100/20'
+                                      : 'text-green-500 hover:text-green-700 hover:bg-green-100/20'
+                                    } ${connecting[api.apiURL] ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                  title={
+                                    connecting[api.apiURL]
+                                      ? `${connecting[api.apiURL].type === 'connect' ? '연결 중' : '해제 중'} ${getElapsedSec(api.apiURL)}s`
+                                      : (api.isConnected ? '연결 해제' : '연결')
+                                  }
+                                  aria-busy={!!connecting[api.apiURL]}
                                 >
-                                  {api.isConnected ? <Unplug className="w-4 h-4" /> : <Plug className="w-4 h-4" />}
+                                  {connecting[api.apiURL]
+                                    ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                                    : (api.isConnected ? <Unplug className="w-4 h-4" /> : <Plug className="w-4 h-4" />)
+                                  }
+                                  <span className="sr-only">
+                                    {connecting[api.apiURL]
+                                      ? (connecting[api.apiURL].type === 'connect' ? '연결 중' : '해제 중')
+                                      : (api.isConnected ? '연결 해제' : '연결')}
+                                  </span>
                                 </Button>
+
+                                {/* 진행 중이면 타이머 텍스트 노출 */}
+                                {connecting[api.apiURL] && (
+                                  <span className="text-xs text-muted-foreground min-w-[80px]" aria-live="polite">
+                                    {connecting[api.apiURL].type === 'connect' ? '연결 중' : '해제 중'}&nbsp;
+                                    {String(getElapsedSec(api.apiURL)).padStart(2, '0')}s
+                                  </span>
+                                )}
                                 <Button
                                   size="sm"
                                   variant="ghost"
