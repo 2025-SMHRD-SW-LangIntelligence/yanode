@@ -23,7 +23,7 @@ import jakarta.servlet.http.HttpSession;
 @RestController
 @RequestMapping("/api/auth")
 public class UserController {
-
+ 
     private final SecurityConfig securityConfig;
     
 	@Autowired
