@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "./styles/globals.css";
+
 /* ========== 디자인 토큰(Light) ========== */
 :root {
   --background: 0 0% 100%;

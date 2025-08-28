@@ -143,5 +143,11 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+<<<<<<< HEAD
 .node_modules/
 # End of https://www.gitignore.io/api/java,macos,eclipse
+=======
+
+# End of https://www.gitignore.io/api/java,macos,eclipse
+
+>>>>>>> branch 'yang' of https://github.com/2025-SMHRD-SW-LangIntelligence/yanode.git

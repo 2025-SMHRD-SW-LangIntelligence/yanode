@@ -1,10 +1,9 @@
-// src/components/layout/ExplorerSidebar.tsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../ui/button";
-import { Clock, Star, HardDrive } from "lucide-react";
+import { Clock, Star, HardDrive, Folder, FolderOpen, ChevronRight, ChevronDown, RefreshCw, Loader2 } from "lucide-react";
 import DriveTree from "../drive/DriveTree";
 import type { FileItem } from "../../types";
 import type { DriveFolder } from "../../features/files/hooks/useDriveFolders";
-import { useState, useMemo } from "react";
 import { FileSearchModal } from "../../features/files/FileSearchModal";
 
 type CheckState = "checked" | "indeterminate" | "unchecked";
@@ -23,6 +22,7 @@ export default function ExplorerSidebar({
   onClearSelection,
   onSelectAll,
   getCheckState,
+  fetchDriveFolders,
 }: {
   recentFiles: FileItem[];
   favoriteFiles: FileItem[];
@@ -37,9 +37,28 @@ export default function ExplorerSidebar({
   onClearSelection?: () => void;
   onSelectAll?: () => void;
   getCheckState?: (id: string) => CheckState;
+  fetchDriveFolders?: () => Promise<void>;
 }) {
   const [activeTab, setActiveTab] = useState<"recent" | "favorites" | "drive">(activeTabDefault);
-  const currentSidebarFiles = activeTab === "recent" ? recentFiles.slice(0, 6) : favoriteFiles.slice(0, 6);
+  const currentSidebarFiles =
+    activeTab === "recent" ? recentFiles.slice(0, 6) : favoriteFiles.slice(0, 6);
+  const [loadingDots, setLoadingDots] = useState(0);
+
+  // ====== 내부 드라이브 상태 (외부 미제공 시 자동 로딩) ======
+  const [loading, setLoading] = useState(false);
+  const [driveFoldersLocal, setDriveFoldersLocal] = useState<DriveFolder[] | null>(null);
+
+  const handleRefresh = async () => {
+    if (loading || !fetchDriveFolders) return;           // 로딩 중 중복 클릭 방지
+    setLoading(true);
+    try {
+      await fetchDriveFolders();
+    } catch (err) {
+      console.error("드라이브 불러오기 실패", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="w-80 h-full bg-muted border-r-2 border-border flex flex-col">
@@ -47,12 +66,7 @@ export default function ExplorerSidebar({
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h2 className="text-lg font-semibold text-foreground">탐색</h2>
         {onClose && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg w-8 h-8 p-0"
-          >
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg w-8 h-8 p-0">
             ×
           </Button>
         )}
@@ -97,38 +111,63 @@ export default function ExplorerSidebar({
         {/* 콘텐츠 */}
         {activeTab === "drive" ? (
           <div className="flex-1 overflow-y-auto pr-1">
-            {/* ✅ 선택 요약/버튼 (한 번만 렌더) */}
-            {onToggleSelectFolder && (
-              <div className="flex items-center justify-between px-1 py-2 text-xs text-muted-foreground">
-                <span>선택된 폴더: {selectedFolderIds?.length ?? 0}</span>
-                <div className="flex gap-2">
-                  {onSelectAll && (
-                    <button className="underline hover:text-foreground" onClick={onSelectAll}>
-                      전체선택
-                    </button>
-                  )}
-                  {onClearSelection && (
-                    <button className="underline hover:text-foreground" onClick={onClearSelection}>
-                      초기화
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* 선택 요약/버튼 */}
+            <div className="flex items-center justify-between px-1 py-2 text-xs text-muted-foreground">
+              <span>선택된 폴더: {selectedFolderIds?.length ?? 0}</span>
+              <div className="flex items-center gap-2">
+                <button className="underline hover:text-foreground" onClick={onSelectAll}>전체선택</button>
+                <button className="underline hover:text-foreground" onClick={onClearSelection}>초기화</button>
 
-            <DriveTree
-              driveFolders={driveFolders}
-              toggleFolder={toggleFolder}
-              onFileSelect={onFileSelect}
-              selectedFolderIds={selectedFolderIds}
-              onToggleCascade={onToggleSelectFolder}
-              getCheckState={getCheckState}
-            />
+                {/* 새로고침 버튼 추가 */}
+                <button
+                  className="inline-flex items-center gap-1 underline hover:text-foreground disabled:opacity-50"
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  aria-label="드라이브 다시 불러오기"
+                  title="드라이브 다시 불러오기"
+                >
+                  <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+
+                </button>
+              </div>
+
+            </div>
+
+            {/* 드라이브 트리 */}
+            {!driveFolders ? (
+              <div className="text-center text-xs text-muted-foreground py-6" aria-live="polite">
+                {loading ? (
+                  <div className="inline-flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    <span className="animate-pulse">
+                      드라이브 로딩 중
+                      <span className="inline-block" aria-hidden="true">
+                        {".".repeat(loadingDots)}
+                      </span>
+                    </span>
+                  </div>
+                ) : (
+                  "드라이브 데이터가 없습니다."
+                )}
+              </div>
+
+            ) : (
+              // 렌더 부분
+              <DriveTree
+                driveFolders={driveFolders!}
+                toggleFolder={toggleFolder}
+                onFileSelect={onFileSelect}
+                selectedFolderIds={selectedFolderIds}
+                onToggleCascade={onToggleSelectFolder}
+                getCheckState={getCheckState}
+              />
+
+            )}
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto px-4">
             <div className="space-y-2">
-              {currentSidebarFiles.map((file) => (
+              {currentSidebarFiles.map(file => (
                 <div
                   key={file.id}
                   className="group p-3 rounded-xl bg-background hover:bg-accent transition-all cursor-pointer border border-border"
@@ -142,7 +181,6 @@ export default function ExplorerSidebar({
                         {file.type} • {file.size}
                       </p>
                     </div>
-                    {/* 즐겨찾기 버튼은 필요 시 상위에서 prop 추가 */}
                   </div>
                 </div>
               ))}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import {
@@ -13,11 +13,10 @@ import {
   Grid,
   List,
   ChevronDown,
+  Unplug,
   AlertCircle,
   CheckCircle,
 } from 'lucide-react';
-import ExplorerSidebar from '../../components/layout/ExplorerSidebar';
-import { PanelLeft } from 'lucide-react';
 import type { FileItem, ApiKey } from '../../types';
 import { FileSearchModal } from '../files/FileSearchModal';
 import { useFileData } from '../files/hooks/useFileData';
@@ -26,6 +25,10 @@ import { useFiles } from '../../features/files/useFiles';
 import type { DriveFolder } from '../files/hooks/useDriveFolders';
 import { useApiKeys } from '../settings/useApiKeys';
 import { FilePreviewDrawer } from '../../features/files/FilePreviewDrawer';
+import ExplorerSidebar from '../../components/layout/ExplorerSidebar';
+import { useNavigate } from 'react-router-dom';
+import { PanelLeft } from 'lucide-react';
+
 
 interface HomeScreenProps {
   onNavigateToChat: () => void;
@@ -49,13 +52,14 @@ export function HomeScreen({
   hasConnectedApiKeys,
   onDisconnectAllApiKeys,
 }: HomeScreenProps) {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFileModal, setShowFileModal] = useState(false);
   const [showApiDropdown, setShowApiDropdown] = useState(false);
   const apiDropdownRef = useRef<HTMLDivElement>(null);
-  const { recentFiles, favoriteFiles } = useFileData(files);
+  const { recentFiles } = useFileData(files);
   const { driveFolders, toggleFolder, fetchDriveFolders, selectedFolderIds,
     toggleSelectCascade, clearSelectedFolders, selectAllFolders, getCheckState } =
     useDriveFolders(apiKeys.find(k => k.isConnected)?.apiURL, files);
@@ -64,8 +68,36 @@ export function HomeScreen({
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const showPreviewDrawer = !!selectedFile;
   const handleClosePreview = () => setSelectedFile(null);
+  const [apis, setApis] = useState<ApiKey[]>([]);
 
-  // 드롭다운 외부 클릭 시 닫기
+  // 정렬 상태
+  const [sortOption, setSortOption] = useState<'recent' | 'oldest' | 'name' | 'favorite'>('recent');
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+
+  // ✅ 최근/즐겨찾기 파일 (사이드바 vs 메인 화면 구분)
+  const recentFilesForSidebar = files.slice(0, 12); // 사이드바: 12개
+  const recentFilesForMain = files.slice(0, 8);     // 메인 화면: 8개
+  const favoriteFiles = files.filter((file) => file.isFavorite);
+
+  // 안전한 날짜 변환 함수
+  const getTime = (d?: string) => (d ? new Date(d).getTime() : 0);
+
+  // ✅ 메인 화면 정렬 로직
+  const sortedFiles = [...recentFilesForMain].sort((a, b) => {
+    switch (sortOption) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'oldest':
+        return getTime(a.updatedAt) - getTime(b.updatedAt);
+      case 'favorite':
+        return (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0);
+      case 'recent':
+      default:
+        return getTime(b.updatedAt) - getTime(a.updatedAt);
+    }
+  });
+
+  // 드롭다운 외부 클릭 닫기
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (apiDropdownRef.current && !apiDropdownRef.current.contains(event.target as Node)) {
@@ -75,14 +107,6 @@ export function HomeScreen({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    if (hasConnectedApiKeys && driveFolders.length === 0) {
-      fetchDriveFolders().then(() => {
-        selectAllFolders();
-      });
-    }
-  }, [hasConnectedApiKeys]);
 
   const handleFileSelect = (file: FileItem) => {
     setSelectedFile(file);
@@ -108,6 +132,7 @@ export function HomeScreen({
           onClearSelection={clearSelectedFolders}
           onSelectAll={selectAllFolders}
           getCheckState={getCheckState}
+          fetchDriveFolders={fetchDriveFolders}
         />
       </div>
 
@@ -137,7 +162,7 @@ export function HomeScreen({
             </div>
 
             <div className="flex items-center space-x-3">
-              {/* API 연결 상태 배지 with 드롭다운 */}
+              {/* API 연결 상태 드롭다운 */}
               <div className="relative" ref={apiDropdownRef}>
                 <button
                   onClick={() => {
@@ -217,7 +242,7 @@ export function HomeScreen({
               <p className="text-xl text-muted-foreground mb-8">무엇을 찾고 계신가요?</p>
             </div>
 
-            {/* 검색 바 */}
+            {/* 🔍 검색 바 */}
             <div className="relative w-full">
               <div className="bg-background border-2 border-border p-2 rounded-2xl shadow-clean-md">
                 <div className="flex items-center space-x-3">
@@ -239,7 +264,7 @@ export function HomeScreen({
               </div>
             </div>
 
-            {/* 빠른 액션 */}
+            {/* ⚡ 빠른 액션 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
               <Button
                 onClick={onNavigateToChat}
@@ -253,6 +278,7 @@ export function HomeScreen({
                 </div>
               </Button>
               <Button
+                onClick={() => navigate('/upload')}
                 className="bg-background border-2 border-border p-6 h-auto flex flex-col items-center space-y-3 hover:bg-accent text-foreground card-hover shadow-clean-md"
                 variant="ghost"
               >
@@ -275,7 +301,7 @@ export function HomeScreen({
               </Button>
             </div>
 
-            {/* API 미연결 안내 */}
+            {/* ⚠️ API 연결 안내 */}
             {!hasConnectedApiKeys && (
               <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
                 <div className="flex items-center space-x-4">
@@ -298,11 +324,12 @@ export function HomeScreen({
               </div>
             )}
 
-            {/* 최근 파일 */}
+            {/* 📂 최근 파일 */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-semibold text-foreground">최근 파일</h3>
                 <div className="flex items-center space-x-2">
+                  {/* 뷰모드 토글 */}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -311,9 +338,31 @@ export function HomeScreen({
                   >
                     {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
                   </Button>
-                  <Button variant="ghost" size="sm" className="border border-border hover:bg-accent">
-                    <Filter className="w-4 h-4" />
-                  </Button>
+
+                  {/* 정렬 드롭다운 */}
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="border border-border hover:bg-accent"
+                      onClick={() => setShowSortDropdown(!showSortDropdown)}
+                    >
+                      <Filter className="w-4 h-4" />
+                    </Button>
+
+                    {showSortDropdown && (
+                      <div className="absolute right-0 mt-2 w-40 bg-background border border-border rounded-lg shadow-md z-10">
+                        <button onClick={() => { setSortOption('recent'); setShowSortDropdown(false); }}
+                          className="block w-full text-left px-4 py-2 hover:bg-accent">최신순</button>
+                        <button onClick={() => { setSortOption('oldest'); setShowSortDropdown(false); }}
+                          className="block w-full text-left px-4 py-2 hover:bg-accent">오래된순</button>
+                        <button onClick={() => { setSortOption('name'); setShowSortDropdown(false); }}
+                          className="block w-full text-left px-4 py-2 hover:bg-accent">이름순</button>
+                        <button onClick={() => { setSortOption('favorite'); setShowSortDropdown(false); }}
+                          className="block w-full text-left px-4 py-2 hover:bg-accent">즐겨찾기 우선</button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

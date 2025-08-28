@@ -5,11 +5,11 @@ import { Card } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Switch } from '../../components/ui/switch';
 import { ApiKeyModal } from '../settings/ApiKeyModal';
-import { ApiConnectionStatus } from '../settings/ApiConnectionStatus';
 import { HelpModal } from '../../components/common/HelpModal';
 import type { ApiKey } from '../../types';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useDriveFolders } from '../files/hooks/useDriveFolders'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -36,8 +36,12 @@ import {
   Unplug,
   Plug,
   CheckCircle,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react';
+import ChangePasswordModal from "./ChangePassword";
+
+
 
 // --- 소셜 로그인 아이콘 컴포넌트 (그대로 유지) ---
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -86,6 +90,18 @@ export function SettingsScreen({
   const location = useLocation();
   const initialTab = location.state?.initialTab || 'profile';
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security' | 'about'>(initialTab);
+  // API 연결/해제 진행 중인 항목을 apiURL로 관리
+  const [connecting, setConnecting] = useState<Record<string, { type: 'connect' | 'disconnect'; start: number }>>({});
+  // 1초마다 갱신되는 현재 시각(타이머 표시용)
+  const [now, setNow] = useState<number>(Date.now());
+  const {
+    driveFolders,
+    fetchDriveFolders,
+    selectAllFolders
+  } = useDriveFolders(
+    apiKeys.find(k => k.isConnected)?.apiURL,
+    []
+  );
 
   const navigate = useNavigate();
 
@@ -113,6 +129,21 @@ export function SettingsScreen({
       alert("로그아웃 실패. 다시 시도해주세요.");
     }
   };
+
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  const getElapsedSec = (apiIdx: number) => {
+    const e = connecting[apiIdx];
+    if (!e) return 0;
+    const diff = Math.floor((now - e.start) / 1000);
+    return diff < 0 ? 0 : diff;
+  };
+
+  useEffect(() => {
+    if (Object.keys(connecting).length === 0) return; // 진행중 없으면 인터벌 안 돌림
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [connecting]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -221,49 +252,56 @@ export function SettingsScreen({
     }
   };
 
-  const changePassword = async () => {
-    if (!prompt('현재 비밀번호', '')) return;
-  }
-
   const onConnectApiKey = async (apiIdx: number) => {
+    // 진행 시작 표시
+    setConnecting(prev => ({ ...prev, [apiIdx]: { type: 'connect', start: Date.now() } }));
     try {
       const res = await fetch(`http://localhost:8090/api/dooray/driveConnect?apiIdx=${apiIdx}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
       });
 
       if (!res.ok) throw new Error('Dooray API 연결 실패');
 
-      const drives = await res.json();
-      console.log(drives);
-
       setApiKeys(prev =>
         prev.map(api => api.apiIdx === apiIdx ? { ...api, isConnected: true } : api)
       );
       alert("연결 성공!");
+      await fetchDriveFolders();
+      selectAllFolders();
+      
     } catch (err) {
       alert('연결 실패!');
+    } finally {
+      // 진행 종료 표시
+      setConnecting(prev => {
+        const { [apiIdx]: _, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
+
   const onDisconnectApiKey = async (apiIdx: number) => {
-    if (!confirm('연결 해제 하시겠습니까?')) return;
+    setConnecting(prev => ({ ...prev, [apiIdx]: { type: 'disconnect', start: Date.now() } }));
     try {
-      await fetch(`http://localhost:8090/api/dooray/driveDisconnect?apiIdx=${apiIdx}`, {
+      await fetch(`http://localhost:8090/api/dooray/driveDisconnect?apiIdx=${encodeURIComponent(apiIdx)}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
       });
       setApiKeys(prev =>
         prev.map(api => api.apiIdx === apiIdx ? { ...api, isConnected: false } : api)
       );
     } catch (err) {
-      console.log("실패")
+      console.error(err);
+      alert('해제 실패!');
+    } finally {
+      setConnecting(prev => {
+        const { [apiIdx]: _, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
@@ -278,7 +316,7 @@ export function SettingsScreen({
           },
           credentials: 'include'
         });
-        console.log("성공적으로 탈퇴되었습니다.")
+        alert("성공적으로 탈퇴되었습니다.");
         navigate('/login');
       } catch (err) {
         console.log("실패")
@@ -320,7 +358,7 @@ export function SettingsScreen({
         <div className="flex flex-col lg:flex-row gap-6">
           {/* 사이드바 탭 */}
           <div className="lg:w-80">
-            <Card className="glass-strong border border-border p-2">
+            <Card className="border-border p-2">
               <div className="space-y-1">
                 {tabs.map((tab) => (
                   <button
@@ -341,7 +379,7 @@ export function SettingsScreen({
 
           {/* 메인 콘텐츠 */}
           <div className="flex-1">
-            <Card className="glass-strong border border-border p-8">
+            <Card className="border-border p-8 min-h-[600px]">
               {/* 프로필 탭 */}
               {activeTab === 'profile' && (
                 <div className="space-y-8 animate-fade-in">
@@ -536,7 +574,7 @@ export function SettingsScreen({
 
                   <div className="space-y-6">
                     {/* 비밀번호 변경 */}
-                    <div className="glass p-6 rounded-xl border border-border card-hover">
+                    <div className="p-6 rounded-xl border border-border card-hover">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <Key className="w-5 h-5 text-muted-foreground" />
@@ -546,12 +584,21 @@ export function SettingsScreen({
                           </div>
                         </div>
                         <Button
-                          onClick={changePassword}
-                          className="glass hover:bg-accent text-foreground font-medium rounded-xl border-0">
+                          onClick={() => setShowPasswordModal(true)}
+                          className="glass hover:bg-accent text-foreground font-medium rounded-xl border-0"
+                        >
                           변경
                         </Button>
                       </div>
                     </div>
+
+                    {/* 모달 */}
+                    {showPasswordModal && (
+                      <ChangePasswordModal
+                        isOpen={showPasswordModal}
+                        onClose={() => setShowPasswordModal(false)}
+                      />
+                    )}
 
                     {/* API 키 관리 */}
                     <div className="space-y-4">
@@ -606,10 +653,32 @@ export function SettingsScreen({
                                   className={`w-8 h-8 p-0 rounded-lg ${api.isConnected
                                     ? 'text-red-500 hover:text-red-700 hover:bg-red-100/20'
                                     : 'text-green-500 hover:text-green-700 hover:bg-green-100/20'
-                                    }`}
+                                    } ${connecting[api.apiIdx] ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                  title={
+                                    connecting[api.apiIdx]
+                                      ? `${connecting[api.apiIdx].type === 'connect' ? '연결 중' : '해제 중'} ${getElapsedSec(api.apiIdx)}s`
+                                      : (api.isConnected ? '연결 해제' : '연결')
+                                  }
+                                  aria-busy={!!connecting[api.apiIdx]}
                                 >
-                                  {api.isConnected ? <Unplug className="w-4 h-4" /> : <Plug className="w-4 h-4" />}
+                                  {connecting[api.apiIdx]
+                                    ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                                    : (api.isConnected ? <Unplug className="w-4 h-4" /> : <Plug className="w-4 h-4" />)
+                                  }
+                                  <span className="sr-only">
+                                    {connecting[api.apiIdx]
+                                      ? (connecting[api.apiIdx].type === 'connect' ? '연결 중' : '해제 중')
+                                      : (api.isConnected ? '연결 해제' : '연결')}
+                                  </span>
                                 </Button>
+
+                                {/* 진행 중이면 타이머 텍스트 노출 */}
+                                {connecting[api.apiIdx] && (
+                                  <span className="text-xs text-muted-foreground min-w-[80px]" aria-live="polite">
+                                    {connecting[api.apiIdx].type === 'connect' ? '연결 중' : '해제 중'}&nbsp;
+                                    {String(getElapsedSec(api.apiIdx)).padStart(2, '0')}s
+                                  </span>
+                                )}
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -650,7 +719,7 @@ export function SettingsScreen({
 
                   <div className="space-y-6">
                     {/* 앱 버전 */}
-                    <div className="glass p-6 rounded-xl border border-border">
+                    <div className="p-6 rounded-xl border border-border">
                       <div className="flex items-center space-x-4 mb-6">
                         <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center">
                           <SettingsIcon className="w-8 h-8 text-white" />
@@ -678,7 +747,7 @@ export function SettingsScreen({
                     </div>
 
                     {/* 도움말 */}
-                    <div className="glass p-6 rounded-xl border border-border card-hover">
+                    <div className=" p-6 rounded-xl border border-border card-hover">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <HelpCircle className="w-5 h-5 text-muted-foreground" />
@@ -697,7 +766,7 @@ export function SettingsScreen({
                     </div>
 
                     {/* 개인정보 처리방침 */}
-                    <div className="glass p-6 rounded-xl border border-border card-hover">
+                    <div className="p-6 rounded-xl border border-border card-hover">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <Shield className="w-5 h-5 text-muted-foreground" />
@@ -713,7 +782,7 @@ export function SettingsScreen({
                     </div>
 
                     {/* 로그아웃 */}
-                    <div className="glass p-6 rounded-xl border border-red-200/20 bg-red-50/10">
+                    <div className="p-6 rounded-xl border border-red-200/20 bg-red-50/10">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <LogOut className="w-5 h-5 text-red-500" />

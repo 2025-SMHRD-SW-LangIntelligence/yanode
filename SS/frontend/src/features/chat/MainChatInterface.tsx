@@ -9,14 +9,12 @@ import {
   ArrowLeft,
   Bot,
   User,
-  Star,
 } from 'lucide-react';
 import type { FileItem, ChatMessage, ApiKey } from '../../types';
 import { FileSearchModal } from '../files/FileSearchModal';
 import ExplorerSidebar from '../../components/layout/ExplorerSidebar';
 import { PanelLeft } from 'lucide-react';
 import { useFileData } from '../files/hooks/useFileData';
-import { useDriveFolders } from '../files/hooks/useDriveFolders';
 
 interface MainChatInterfaceProps {
   onOpenSettings: () => void;
@@ -48,12 +46,11 @@ export function MainChatInterface({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showFileModal, setShowFileModal] = useState(false);
 
-  // 공통 훅
+  // 파일 데이터 헬퍼
   const { recentFiles, favoriteFiles, searchFiles } = useFileData(files);
-  const { driveFolders, toggleFolder, activeFolderId, selectedFolderIds,
-    toggleSelectCascade, clearSelectedFolders, selectAllFolders, getCheckState } =
-    useDriveFolders(apiKeys.find(k => k.isConnected)?.key, files);
 
+  // 사이드바에서 선택된 폴더 ID를 여기서 유지 (검색 범위로 사용)
+  const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -76,8 +73,8 @@ export function MainChatInterface({
     setIsTyping(true);
 
     setTimeout(() => {
-      // ✅ 선택된 폴더가 있으면 그 범위에서만 검색
-      const searchResults = searchFiles(currentQuery, selectedFolderIds); // ✅ 선택 폴더 범위 검색
+      // ✅ 선택된 폴더 범위로 검색
+      const searchResults = searchFiles(currentQuery, selectedFolderIds);
       const botContent =
         searchResults.length === 0
           ? `"${currentQuery}"에 대한 파일을 찾지 못했습니다.`
@@ -93,7 +90,7 @@ export function MainChatInterface({
 
       setMessages((prev) => [...prev, botMessage]);
       setIsTyping(false);
-    }, 1000);
+    }, 800);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -105,24 +102,17 @@ export function MainChatInterface({
 
   return (
     <div className="h-screen flex bg-background overflow-hidden">
-      {/* 사이드바 */}
-      <div
-        className={`${sidebarOpen ? 'w-80' : 'w-0'
-          } transition-all duration-300 ease-in-out overflow-hidden`}
-      >
+      {/* 공통 사이드바 */}
+      <div className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out overflow-hidden`}>
         <ExplorerSidebar
-          recentFiles={recentFiles}
+          recentFiles={recentFiles.slice(0,12)} // 최근 12개 파일만 표시
           favoriteFiles={favoriteFiles}
-          driveFolders={driveFolders}
-          toggleFolder={toggleFolder}
           onFileSelect={onFileSelect}
-          activeTabDefault="drive"               // 드라이브 탭을 기본으로 보고 테스트 추천
+          activeTabDefault="drive"
           onClose={() => setSidebarOpen(false)}
-          selectedFolderIds={selectedFolderIds}  // ✅ 선택 상태 전달
-          onToggleSelectFolder={toggleSelectCascade}
-          onClearSelection={clearSelectedFolders}
-          onSelectAll={selectAllFolders}
-          getCheckState={getCheckState}
+          // 선택 결과를 상위로 알려줌 → 검색 범위에 사용
+          onSelectionChange={setSelectedFolderIds}
+          // 드라이브 로딩/API 호출/체크박스/토글은 내부에서 자동 처리
         />
       </div>
 
@@ -185,7 +175,6 @@ export function MainChatInterface({
                 key={message.id}
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                {/* 실제 메시지 렌더링은 프로젝트 스타일에 맞게 */}
                 <div className="rounded-lg border px-3 py-2 text-sm bg-background">
                   {message.content}
                 </div>

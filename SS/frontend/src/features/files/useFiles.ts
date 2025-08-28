@@ -37,8 +37,8 @@ export function useFiles(driveFolders: DriveFolder[]): FilesHookReturn {
   const fileStats = useMemo(() => {
     const totalFiles = files.length;
     const favoriteFiles = files.filter(file => file.isFavorite);
-    const recentFiles = files.slice(0, 5);
-
+    const recentFiles = files.slice(0, 12);
+    
     return {
       totalFiles,
       favoriteFiles,
