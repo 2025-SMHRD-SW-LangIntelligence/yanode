@@ -60,6 +60,13 @@ export default function ExplorerSidebar({
     }
   };
 
+  useEffect(() => {
+    if (!driveFolders || driveFolders.length === 0) {
+      // 드라이브 연결 끊김 → 선택 초기화
+      onClearSelection?.();
+    }
+  }, [driveFolders]);
+
   return (
     <div className="w-80 h-full bg-muted border-r-2 border-border flex flex-col">
       {/* 헤더 */}
@@ -134,23 +141,22 @@ export default function ExplorerSidebar({
             </div>
 
             {/* 드라이브 트리 */}
-            {!driveFolders ? (
+            {loading ? (
               <div className="text-center text-xs text-muted-foreground py-6" aria-live="polite">
-                {loading ? (
-                  <div className="inline-flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                    <span className="animate-pulse">
-                      드라이브 로딩 중
-                      <span className="inline-block" aria-hidden="true">
-                        {".".repeat(loadingDots)}
-                      </span>
+                <div className="inline-flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                  <span className="animate-pulse">
+                    드라이브 로딩 중
+                    <span className="inline-block" aria-hidden="true">
+                      {".".repeat(loadingDots)}
                     </span>
-                  </div>
-                ) : (
-                  "드라이브 데이터가 없습니다."
-                )}
+                  </span>
+                </div>
               </div>
-
+            ) : !driveFolders || driveFolders.length === 0 ? (
+              <div className="text-center text-xs text-muted-foreground py-6" aria-live="polite">
+                드라이브 데이터가 없습니다.
+              </div>
             ) : (
               // 렌더 부분
               <DriveTree

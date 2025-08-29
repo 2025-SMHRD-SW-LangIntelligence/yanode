@@ -18,7 +18,12 @@ export function useDriveFolders(
   initialFiles: FileItem[],
   onSelectAll?: () => void
 ) {
-  const [driveFolders, setDriveFolders] = useState<DriveFolder[]>([]);
+  const [driveFolders, setDriveFolders] = useState<DriveFolder[]>(() => {
+    try {
+      const saved = localStorage.getItem('drive:folders');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return [];}
+  });
   const [activeFolderId, setActiveFolderId] = useState<string | undefined>(undefined);
   const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>(() => {
     try {
@@ -85,6 +90,7 @@ export function useDriveFolders(
       }));
 
       setDriveFolders(roots);
+      localStorage.setItem('drive:folders', JSON.stringify(roots));
     } catch (err) {
       console.error("드라이브 API 오류", err);
     }
@@ -185,6 +191,7 @@ export function useDriveFolders(
     clearSelectedFolders,
     selectAllFolders,
     getCheckState,
-    fetchDriveFolders
+    fetchDriveFolders,
+    setDriveFolders
   };
 }

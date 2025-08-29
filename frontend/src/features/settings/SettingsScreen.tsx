@@ -97,7 +97,8 @@ export function SettingsScreen({
   const {
     driveFolders,
     fetchDriveFolders,
-    selectAllFolders
+    selectAllFolders,
+    setDriveFolders
   } = useDriveFolders(
     apiKeys.find(k => k.isConnected)?.apiURL,
     []
@@ -225,7 +226,9 @@ export function SettingsScreen({
   };
 
   const handleSaveApiKey = async (newApi: ApiKey) => {
-    setApiKeys((prev) => [...prev, newApi]);
+    const updated = [...apiKeys, newApi];
+    setApiKeys(updated);
+    onApiKeysChange?.(updated);
   };
 
   const handleDeleteApiKey = async (apiIdx: number) => {
@@ -264,13 +267,23 @@ export function SettingsScreen({
 
       if (!res.ok) throw new Error('Dooray API 연결 실패');
 
-      setApiKeys(prev =>
-        prev.map(api => api.apiIdx === apiIdx ? { ...api, isConnected: true } : api)
+      const updated = apiKeys.map(api =>
+        api.apiIdx === apiIdx ? { ...api, isConnected: true } : api
       );
+      setApiKeys(updated);
+      onApiKeysChange?.(updated);
+
+      const savedFolders = JSON.parse(localStorage.getItem('drive:folders') || '[]');
+      if (savedFolders.length) {
+        setDriveFolders(savedFolders);
+        selectAllFolders();
+        console.log("a")
+      } else {
+        console.log("b")
+        await fetchDriveFolders();
+        selectAllFolders();
+      }
       alert("연결 성공!");
-      await fetchDriveFolders();
-      selectAllFolders();
-      
     } catch (err) {
       alert('연결 실패!');
     } finally {
@@ -291,9 +304,15 @@ export function SettingsScreen({
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
       });
-      setApiKeys(prev =>
-        prev.map(api => api.apiIdx === apiIdx ? { ...api, isConnected: false } : api)
+
+      const updated = apiKeys.map(api =>
+        api.apiIdx === apiIdx ? { ...api, isConnected: false } : api
       );
+      setApiKeys(updated);
+      onApiKeysChange?.(updated);
+
+      setDriveFolders([]);
+      localStorage.removeItem('drive:folders');
     } catch (err) {
       console.error(err);
       alert('해제 실패!');

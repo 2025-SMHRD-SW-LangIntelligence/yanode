@@ -33,7 +33,6 @@ import { PanelLeft } from 'lucide-react';
 interface HomeScreenProps {
   onNavigateToChat: () => void;
   onOpenSettings: (tab?: 'profile' | 'preferences' | 'security' | 'about') => void;
-  hasConnectedApiKeys: boolean;
   files: FileItem[];
   onToggleFavorite: (fileId: string) => void;
   onFileSelect?: (file: FileItem) => void;
@@ -49,7 +48,6 @@ export function HomeScreen({
   onToggleFavorite,
   onFileSelect,
   apiKeys,
-  hasConnectedApiKeys,
   onDisconnectAllApiKeys,
 }: HomeScreenProps) {
   const navigate = useNavigate();
@@ -64,6 +62,7 @@ export function HomeScreen({
     toggleSelectCascade, clearSelectedFolders, selectAllFolders, getCheckState } =
     useDriveFolders(apiKeys.find(k => k.isConnected)?.apiURL, files);
   const connectedKeys = apiKeys.filter((key) => key.isConnected);
+  const hasConnectedApiKeys = connectedKeys.length > 0;
   const filesHook = useFiles(driveFolders);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const showPreviewDrawer = !!selectedFile;
