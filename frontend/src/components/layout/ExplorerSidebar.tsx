@@ -67,6 +67,14 @@ export default function ExplorerSidebar({
     }
   }, [driveFolders]);
 
+  useEffect(() => {
+    if (!loading) return;                // 로딩 아닐 땐 동작 안 함
+    const id = setInterval(() => {
+      setLoadingDots(d => (d + 1) % 4);  // 0→1→2→3→0 순환
+    }, 400);
+    return () => clearInterval(id);
+  }, [loading]);
+
   return (
     <div className="w-80 h-full bg-muted border-r-2 border-border flex flex-col">
       {/* 헤더 */}
