@@ -37,7 +37,7 @@ export default function ExplorerSidebar({
   onClearSelection?: () => void;
   onSelectAll?: () => void;
   getCheckState?: (id: string) => CheckState;
-  fetchDriveFolders?: () => Promise<void>;
+  fetchDriveFolders: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<"recent" | "favorites" | "drive">(activeTabDefault);
   const currentSidebarFiles =
@@ -49,10 +49,12 @@ export default function ExplorerSidebar({
   const [driveFoldersLocal, setDriveFoldersLocal] = useState<DriveFolder[] | null>(null);
 
   const handleRefresh = async () => {
-    if (loading || !fetchDriveFolders) return;           // 로딩 중 중복 클릭 방지
+    if (loading) return;           // 로딩 중 중복 클릭 방지
+    
     setLoading(true);
     try {
-      await fetchDriveFolders();
+      const res = await fetchDriveFolders();
+
     } catch (err) {
       console.error("드라이브 불러오기 실패", err);
     } finally {

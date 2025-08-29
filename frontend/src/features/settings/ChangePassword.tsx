@@ -41,6 +41,16 @@ export default function ChangePasswordModal({
             return;
         }
 
+        try {
+            const res = await fetch(`http://localhost:8090/api/auth/chgPw=pw?${newPassword}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+            
+        } catch {
+
+        }
         alert("비밀번호가 변경되었습니다.");
         onClose();
     };

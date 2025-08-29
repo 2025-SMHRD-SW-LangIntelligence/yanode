@@ -15,6 +15,7 @@ import { FileSearchModal } from '../files/FileSearchModal';
 import ExplorerSidebar from '../../components/layout/ExplorerSidebar';
 import { PanelLeft } from 'lucide-react';
 import { useFileData } from '../files/hooks/useFileData';
+import { useDriveFolders } from '../files/hooks/useDriveFolders';
 
 interface MainChatInterfaceProps {
   onOpenSettings: () => void;
@@ -45,13 +46,13 @@ export function MainChatInterface({
   const [isTyping, setIsTyping] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showFileModal, setShowFileModal] = useState(false);
+  const { driveFolders, toggleFolder, fetchDriveFolders, selectedFolderIds,
+      toggleSelectCascade, clearSelectedFolders, selectAllFolders, getCheckState } =
+      useDriveFolders(apiKeys.find(k => k.isConnected)?.apiURL, files);
 
   // 파일 데이터 헬퍼
   const { recentFiles, favoriteFiles, searchFiles } = useFileData(files);
-
-  // 사이드바에서 선택된 폴더 ID를 여기서 유지 (검색 범위로 사용)
-  const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>([]);
-
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -100,19 +101,28 @@ export function MainChatInterface({
     }
   };
 
+  const handleFileSelect = (file: FileItem) => {
+      setSelectedFile(file);
+    }
+
   return (
     <div className="h-screen flex bg-background overflow-hidden">
       {/* 공통 사이드바 */}
       <div className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out overflow-hidden`}>
         <ExplorerSidebar
-          recentFiles={recentFiles.slice(0,12)} // 최근 12개 파일만 표시
+          recentFiles={recentFiles}
           favoriteFiles={favoriteFiles}
-          onFileSelect={onFileSelect}
-          activeTabDefault="drive"
+          driveFolders={driveFolders}
+          toggleFolder={toggleFolder}
+          onFileSelect={handleFileSelect}
+          activeTabDefault="recent"
           onClose={() => setSidebarOpen(false)}
-          // 선택 결과를 상위로 알려줌 → 검색 범위에 사용
-          onSelectionChange={setSelectedFolderIds}
-          // 드라이브 로딩/API 호출/체크박스/토글은 내부에서 자동 처리
+          selectedFolderIds={selectedFolderIds}  // ✅ 선택 상태 전달
+          onToggleSelectFolder={toggleSelectCascade}
+          onClearSelection={clearSelectedFolders}
+          onSelectAll={selectAllFolders}
+          getCheckState={getCheckState}
+          fetchDriveFolders={fetchDriveFolders}
         />
       </div>
 
