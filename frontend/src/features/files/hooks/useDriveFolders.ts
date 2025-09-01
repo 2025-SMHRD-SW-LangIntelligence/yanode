@@ -22,7 +22,7 @@ export function useDriveFolders(
     try {
       const saved = localStorage.getItem('drive:folders');
       return saved ? JSON.parse(saved) : [];
-    } catch { return [];}
+    } catch { return []; }
   });
   const [activeFolderId, setActiveFolderId] = useState<string | undefined>(undefined);
   const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>(() => {
@@ -60,6 +60,38 @@ export function useDriveFolders(
       const data = await res.json();
       // console.log(data)
 
+      const getFileIcon = (filename: string): string => {
+        const ext = filename.split('.').pop()?.toLowerCase();
+
+        switch (ext) {
+          case 'hwp':             // 한글
+            return '📝';
+          case 'doc':
+          case 'docx':            // 워드
+            return '📝';
+          case 'xls':
+          case 'xlsx':            // 엑셀
+            return '📊';
+          case 'ppt':
+          case 'pptx':            // 파워포인트
+            return '📈';
+          case 'txt':             // 텍스트 파일
+            return '📃';
+          case 'jpg':
+          case 'jpeg':
+          case 'png':
+          case 'gif':
+          case 'bmp':
+          case 'svg':             // 사진
+            return '🖼️';
+          case 'pdf':             // PDF
+            return '📄';
+          default:                // 기타 파일
+            return '📁';
+        }
+      };
+
+
       const transformFolder = (folder: any, driveId?: string): DriveFolder => ({
         id: folder.id,
         name: folder.name,
@@ -75,7 +107,7 @@ export function useDriveFolders(
           lastUpdater: f.lastUpdater.organizationMemberId,
           updatedAt: f.updatedAt,
           driveId: f.driveId,
-          icon: "📄",
+          icon: getFileIcon(f.name.split(".").pop() || ''),
         })),
         folders: (folder.subFolders || []).map((sub: any) => transformFolder(sub, driveId)),
       });
