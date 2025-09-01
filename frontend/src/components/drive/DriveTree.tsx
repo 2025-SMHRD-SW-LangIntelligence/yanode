@@ -107,10 +107,10 @@ export default function DriveTree({
   driveFolders,
   toggleFolder,
   onFileSelect,
-  // 선택/토글/상태
   selectedFolderIds,
   onToggleCascade,
   getCheckState,
+  hideCheckbox = false,
 }: {
   driveFolders: DriveFolder[];
   toggleFolder: (id: string, parentId?: string) => void;
@@ -118,6 +118,7 @@ export default function DriveTree({
   selectedFolderIds?: string[];
   onToggleCascade?: (id: string, parentId?: string) => void;
   getCheckState?: (id: string) => CheckState;
+  hideCheckbox?: boolean;
 }) {
   return (
     <div className="space-y-1">
@@ -127,8 +128,8 @@ export default function DriveTree({
           folder={folder}
           toggleFolder={toggleFolder}
           onFileSelect={onFileSelect}
-          onToggleCascade={onToggleCascade}
-          getCheckState={getCheckState}
+          onToggleCascade={hideCheckbox ? undefined : onToggleCascade}
+          getCheckState={hideCheckbox ? undefined : getCheckState}
         />
       ))}
     </div>

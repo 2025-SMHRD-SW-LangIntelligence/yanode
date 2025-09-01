@@ -39,7 +39,7 @@ export function LoginScreen({
       }
       onLogin();
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       alert("이메일 또는 비밀번호를 확인하세요.");
     } finally{
       setIsLoading(false);

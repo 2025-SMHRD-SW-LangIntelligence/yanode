@@ -33,6 +33,14 @@ export default function App() {
   const hasConnectedApiKeys = apiKeys.some(k => k.isConnected);
   const connectedKeys = apiKeys.filter(k => k.isConnected);
 
+  const handleNavigateToChat = (query?: string) => {
+    if (typeof query === 'string' && query.trim().length > 0) {
+      navigate('/chat', { state: { query }});
+    } else {
+      navigate('/chat');
+    }
+  }
+
   useEffect(() => {
     const root = document.documentElement;
     if (isDarkMode) root.classList.add('dark');
@@ -191,7 +199,7 @@ export default function App() {
           path="/home"
           element={
             <HomeScreen
-              onNavigateToChat={() => navigate('/chat')}
+              onNavigateToChat={handleNavigateToChat}
               onOpenSettings={(tab?: 'profile' | 'preferences' | 'security' | 'about') => {
                 navigate('/settings', { state: { initialTab: tab || 'profile' } });
               }}
@@ -201,6 +209,7 @@ export default function App() {
               onFileSelect={onFileSelect}
               apiKeys={apiKeys}
               connectedKeys={apiKeys.filter(key => key.isConnected)}
+              favoriteFiles={files.filter(f => f.isFavorite)}
             />
           }
         />

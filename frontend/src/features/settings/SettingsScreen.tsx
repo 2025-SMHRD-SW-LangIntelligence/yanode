@@ -126,7 +126,7 @@ export function SettingsScreen({
 
       onLogout();
     } catch (e) {
-      console.error("로그아웃 중 오류 발생", e);
+      // console.error("로그아웃 중 오류 발생", e);
       alert("로그아웃 실패. 다시 시도해주세요.");
     }
   };
@@ -166,7 +166,7 @@ export function SettingsScreen({
           });
         }
       } catch (err) {
-        console.error('유저 정보 불러오기 실패', err);
+        // console.error('유저 정보 불러오기 실패', err);
       }
     };
 
@@ -184,11 +184,11 @@ export function SettingsScreen({
         setApiKeys(data);
         onApiKeysChange?.(data);
       } else {
-        console.error('API 키 로드 실패', data);
+        // console.error('API 키 로드 실패', data);
         navigate('/login');
       }
     } catch (err) {
-      console.error('API 키 불러오기 오류', err);
+      // console.error('API 키 불러오기 오류', err);
     }
   };
 
@@ -216,7 +216,7 @@ export function SettingsScreen({
         alert(result.message || '수정 실패');
       }
     } catch (err) {
-      console.error('프로필 수정 오류', err);
+      // console.error('프로필 수정 오류', err);
     }
   };
 
@@ -250,7 +250,7 @@ export function SettingsScreen({
         alert(result.message || 'API 키 삭제 실패');
       }
     } catch (err) {
-      console.error(err);
+      // console.error(err);
       alert('API 키 삭제 중 오류가 발생했습니다.');
     }
   };
@@ -277,9 +277,7 @@ export function SettingsScreen({
       if (savedFolders.length) {
         setDriveFolders(savedFolders);
         selectAllFolders();
-        console.log("a")
       } else {
-        console.log("b")
         await fetchDriveFolders();
         selectAllFolders();
       }
@@ -314,7 +312,7 @@ export function SettingsScreen({
       setDriveFolders([]);
       localStorage.removeItem('drive:folders');
     } catch (err) {
-      console.error(err);
+      // console.error(err);
       alert('해제 실패!');
     } finally {
       setConnecting(prev => {
@@ -338,7 +336,6 @@ export function SettingsScreen({
         alert("성공적으로 탈퇴되었습니다.");
         navigate('/login');
       } catch (err) {
-        console.log("실패")
       }
     }
   }
@@ -603,7 +600,13 @@ export function SettingsScreen({
                           </div>
                         </div>
                         <Button
-                          onClick={() => setShowPasswordModal(true)}
+                          onClick={() => {
+                            if(profileData.oAuth==0){
+                              setShowPasswordModal(true)
+                            } else {
+                              alert("일반 사용자만 사용 가능합니다.")
+                            }
+                          }}
                           className="glass hover:bg-accent text-foreground font-medium rounded-xl border-0"
                         >
                           변경

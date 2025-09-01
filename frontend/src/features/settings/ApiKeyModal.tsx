@@ -75,7 +75,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, editingKey, refetchApis }
         alert(result.message || 'API 저장 실패');
       }
     } catch (err) {
-      console.error(err);
+      // console.error(err);
       setIsLoading(false);
       setValidationStatus('invalid')
       alert('API 저장 중 오류가 발생했습니다.');

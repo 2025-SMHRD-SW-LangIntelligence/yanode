@@ -28,7 +28,10 @@ import { FilePreviewDrawer } from '../../features/files/FilePreviewDrawer';
 import ExplorerSidebar from '../../components/layout/ExplorerSidebar';
 import { useNavigate } from 'react-router-dom';
 import { PanelLeft } from 'lucide-react';
-
+import { fetchRecentFile } from '../files/utils/fetchRecentFile';
+import { fetchFavoriteFiles } from '../files/utils/fetchFavoriteFiles';
+import { flattenDriveFiles } from "../../features/files/utils/flattenDriveFiles";
+import UploadScreen from '../upload/UploadScreen';
 
 interface HomeScreenProps {
   onNavigateToChat: () => void;
@@ -74,27 +77,29 @@ export function HomeScreen({
   const [showSortDropdown, setShowSortDropdown] = useState(false);
 
   // ✅ 최근/즐겨찾기 파일 (사이드바 vs 메인 화면 구분)
-  const recentFilesForSidebar = files.slice(0, 12); // 사이드바: 12개
-  const recentFilesForMain = files.slice(0, 8);     // 메인 화면: 8개
-  const favoriteFiles = files.filter((file) => file.isFavorite);
+  const [recentFilesSidebar, setRecentFilesSidebar] = useState<FileItem[]>([]);
+  const [recentFilesMain, setRecentFilesMain] = useState<FileItem[]>([]);
+  const [favoriteFilesSidebar, setFavoriteFilesSidebar] = useState<FileItem[]>([]);
 
   // 안전한 날짜 변환 함수
   const getTime = (d?: string) => (d ? new Date(d).getTime() : 0);
 
   // ✅ 메인 화면 정렬 로직
-  const sortedFiles = [...recentFilesForMain].sort((a, b) => {
+  const sortedFiles = [...recentFilesMain].sort((a, b) => {
     switch (sortOption) {
       case 'name':
         return a.name.localeCompare(b.name);
       case 'oldest':
         return getTime(a.updatedAt) - getTime(b.updatedAt);
-      case 'favorite':
-        return (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0);
       case 'recent':
       default:
         return getTime(b.updatedAt) - getTime(a.updatedAt);
     }
   });
+
+  useEffect(() => {
+    fetchDriveFolders();
+  }, []);
 
   // 드롭다운 외부 클릭 닫기
   useEffect(() => {
@@ -111,6 +116,65 @@ export function HomeScreen({
     setSelectedFile(file);
   }
 
+  useEffect(() => {
+    const loadRecentFiles = async () => {
+      const recentIds = await fetchRecentFile();
+      const allFiles = flattenDriveFiles(driveFolders);
+      const favorites = await fetchFavoriteFiles();
+
+      const mappedFiles = recentIds
+        .map(r => allFiles.find(f => f.id === r.recentFile))
+        .filter(Boolean)
+        .map(f => ({
+          ...f!,
+          isFavorite: favorites.some(fav => fav.id === f!.id)
+        })) as FileItem[];
+
+      setRecentFilesSidebar(mappedFiles.slice(0, 12));
+      setRecentFilesMain(mappedFiles.slice(0, 8));
+    };
+    loadRecentFiles();
+  }, [driveFolders]);
+
+  useEffect(() => {
+    const loadFavorites = async () => {
+      const favorites = await fetchFavoriteFiles();
+      setFavoriteFilesSidebar(favorites);
+    };
+    loadFavorites();
+  }, []);
+
+  const handleRecentFileSaved = async (fileId: string) => {
+    const recent = await fetchRecentFile();
+    const allFiles = flattenDriveFiles(driveFolders);
+    const favorites = await fetchFavoriteFiles();
+
+    const mappedFiles = recent
+      .map(r => allFiles.find(f => f.id === r.recentFile))
+      .filter(Boolean)
+      .map(f => ({
+        ...f!,
+        isFavorite: favorites.some(fav => fav.id === f!.id)
+      })) as FileItem[];
+
+    setRecentFilesSidebar(mappedFiles.slice(0, 12));
+    setRecentFilesMain(mappedFiles.slice(0, 8));
+  }
+
+  const handleToggleFavorite = async (fileId: string) => {
+    await onToggleFavorite(fileId); // 서버 호출
+
+    const favorites = await fetchFavoriteFiles();
+    setFavoriteFilesSidebar(favorites);
+
+    setRecentFilesMain(prev =>
+      prev.map(f => ({ ...f, isFavorite: favorites.some(fav => fav.id === f.id) }))
+    );
+    setRecentFilesSidebar(prev =>
+      prev.map(f => ({ ...f, isFavorite: favorites.some(fav => fav.id === f.id) }))
+    );
+  };
+
   return (
     <div className="h-screen flex bg-background overflow-hidden">
       {/* 사이드바 */}
@@ -119,19 +183,20 @@ export function HomeScreen({
           } transition-all duration-300 ease-in-out overflow-hidden`}
       >
         <ExplorerSidebar
-          recentFiles={recentFiles}
-          favoriteFiles={favoriteFiles}
+          favoriteFiles={favoriteFilesSidebar}
           driveFolders={driveFolders}
           toggleFolder={toggleFolder}
           onFileSelect={handleFileSelect}
           activeTabDefault="recent"
           onClose={() => setSidebarOpen(false)}
-          selectedFolderIds={selectedFolderIds}  // ✅ 선택 상태 전달
+          selectedFolderIds={selectedFolderIds}
           onToggleSelectFolder={toggleSelectCascade}
           onClearSelection={clearSelectedFolders}
           onSelectAll={selectAllFolders}
           getCheckState={getCheckState}
           fetchDriveFolders={fetchDriveFolders}
+          recentFiles={recentFilesSidebar}
+          onToggleFavorite={handleToggleFavorite}
         />
       </div>
 
@@ -254,7 +319,7 @@ export function HomeScreen({
                     className="flex-1 border-0 bg-transparent text-lg placeholder:text-muted-foreground focus:ring-0 h-14"
                   />
                   <Button
-                    onClick={onNavigateToChat}
+                    onClick={() => navigate('/chat', { state: { query: searchQuery } })}
                     className="bg-gradient-primary hover:shadow-lg btn-glow text-white font-semibold px-6 h-12 rounded-xl border border-blue-600"
                   >
                     검색
@@ -277,7 +342,7 @@ export function HomeScreen({
                 </div>
               </Button>
               <Button
-                onClick={() => navigate('/upload')}
+                onClick={() => navigate('/upload', { state: { driveFolders, apiIdx: connectedKeys[0]?.apiIdx, apiURL: connectedKeys[0]?.apiURL } })}
                 className="bg-background border-2 border-border p-6 h-auto flex flex-col items-center space-y-3 hover:bg-accent text-foreground card-hover shadow-clean-md"
                 variant="ghost"
               >
@@ -357,8 +422,6 @@ export function HomeScreen({
                           className="block w-full text-left px-4 py-2 hover:bg-accent">오래된순</button>
                         <button onClick={() => { setSortOption('name'); setShowSortDropdown(false); }}
                           className="block w-full text-left px-4 py-2 hover:bg-accent">이름순</button>
-                        <button onClick={() => { setSortOption('favorite'); setShowSortDropdown(false); }}
-                          className="block w-full text-left px-4 py-2 hover:bg-accent">즐겨찾기 우선</button>
                       </div>
                     )}
                   </div>
@@ -371,9 +434,9 @@ export function HomeScreen({
                   : 'grid-cols-1'
                   }`}
               >
-                {recentFiles.slice(0, 8).map((file) => (
+                {sortedFiles.map((file, index) => (
                   <div
-                    key={file.id}
+                    key={file.id ?? index}
                     onClick={() => {
                       onFileSelect?.(file);
                       setSelectedFile(file);
@@ -393,20 +456,17 @@ export function HomeScreen({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          onToggleFavorite(file.id);
+                          await onToggleFavorite(file.id);
+                          handleFavoriteUpdated();
                         }}
                         className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 p-0 hover:bg-accent flex-shrink-0"
                       >
-                        <Star
-                          className={`w-4 h-4 ${file.isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground hover:text-yellow-500'
-                            }`}
-                        />
                       </Button>
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground gap-2">
-                      <span className="truncate flex-1">{file.lastUpdater}</span>
+                      <span className="truncate flex-1">{(file.size / 1024 / 1024).toFixed(1)}MB</span>
                       <span className="flex-shrink-0">{file.updatedAt ? new Date(file.updatedAt).toLocaleString() : '-'}</span>
                     </div>
                   </div>
@@ -434,8 +494,9 @@ export function HomeScreen({
           isOpen={showPreviewDrawer}
           file={selectedFile}
           onClose={handleClosePreview}
-          onToggleFavorite={onToggleFavorite}
+          onToggleFavorite={handleToggleFavorite}
           zIndex={100}
+          onRecentFileSaved={handleRecentFileSaved}
         />
       )}
     </div>

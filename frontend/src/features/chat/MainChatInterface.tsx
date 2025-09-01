@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import {
@@ -16,6 +17,11 @@ import ExplorerSidebar from '../../components/layout/ExplorerSidebar';
 import { PanelLeft } from 'lucide-react';
 import { useFileData } from '../files/hooks/useFileData';
 import { useDriveFolders } from '../files/hooks/useDriveFolders';
+import { useFiles } from '../../features/files/useFiles';
+import { FilePreviewDrawer } from '../../features/files/FilePreviewDrawer'
+import { fetchRecentFile } from '../files/utils/fetchRecentFile';
+import { fetchFavoriteFiles } from '../files/utils/fetchFavoriteFiles';
+import { flattenDriveFiles } from '../files/utils/flattenDriveFiles';
 
 interface MainChatInterfaceProps {
   onOpenSettings: () => void;
@@ -47,8 +53,8 @@ export function MainChatInterface({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showFileModal, setShowFileModal] = useState(false);
   const { driveFolders, toggleFolder, fetchDriveFolders, selectedFolderIds,
-      toggleSelectCascade, clearSelectedFolders, selectAllFolders, getCheckState } =
-      useDriveFolders(apiKeys.find(k => k.isConnected)?.apiURL, files);
+    toggleSelectCascade, clearSelectedFolders, selectAllFolders, getCheckState } =
+    useDriveFolders(apiKeys.find(k => k.isConnected)?.apiURL, files);
 
   // 파일 데이터 헬퍼
   const { recentFiles, favoriteFiles, searchFiles } = useFileData(files);
@@ -57,29 +63,46 @@ export function MainChatInterface({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  const filesHook = useFiles(driveFolders);
+  const showPreviewDrawer = !!selectedFile;
+  const handleClosePreview = () => setSelectedFile(null);
+  const [recentFilesSidebar, setRecentFilesSidebar] = useState<FileItem[]>([]);
+  const [recentFilesMain, setRecentFilesMain] = useState<FileItem[]>([]);
+  const [favoriteFilesSidebar, setFavoriteFilesSidebar] = useState<FileItem[]>([]);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+  const location = useLocation();
+  const initialQuery = (location.state as any)?.query ?? '';
+  const hasSentInitialQueryRef = useRef(false);
+
+  useEffect(() => {
+    if (initialQuery && !hasSentInitialQueryRef.current) {
+      handleSendMessage(initialQuery);
+      hasSentInitialQueryRef.current = true; // Ref는 렌더 간 유지됨
+    }
+  }, [initialQuery]);
+
+  const handleSendMessage = async (query?: string) => {
+    const messageContent = query ?? inputValue;
+    if (!messageContent.trim()) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       type: 'user',
-      content: inputValue,
+      content: messageContent,
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    const currentQuery = inputValue;
     setInputValue('');
     setIsTyping(true);
 
     setTimeout(() => {
       // ✅ 선택된 폴더 범위로 검색
-      const searchResults = searchFiles(currentQuery, selectedFolderIds);
+      const searchResults = searchFiles(messageContent, selectedFolderIds);
       const botContent =
         searchResults.length === 0
-          ? `"${currentQuery}"에 대한 파일을 찾지 못했습니다.`
-          : `"${currentQuery}"에 대한 검색 결과를 찾았습니다.`;
+          ? `"${messageContent}"에 대한 파일을 찾지 못했습니다.`
+          : `"${messageContent}"에 대한 검색 결과를 찾았습니다.`;
 
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -102,27 +125,87 @@ export function MainChatInterface({
   };
 
   const handleFileSelect = (file: FileItem) => {
-      setSelectedFile(file);
-    }
+    setSelectedFile(file);
+  }
+
+  useEffect(() => {
+    const loadRecentFiles = async () => {
+      const recentIds = await fetchRecentFile();
+      const allFiles = flattenDriveFiles(driveFolders);
+      const favorites = await fetchFavoriteFiles();
+
+      const mappedFiles = recentIds
+        .map(r => allFiles.find(f => f.id === r.recentFile))
+        .filter(Boolean)
+        .map(f => ({
+          ...f!,
+          isFavorite: favorites.some(fav => fav.id === f!.id)
+        })) as FileItem[];
+
+      setRecentFilesSidebar(mappedFiles.slice(0, 12));
+      setRecentFilesMain(mappedFiles.slice(0, 8));
+    };
+    loadRecentFiles();
+  }, [driveFolders]);
+
+  useEffect(() => {
+    const loadFavorites = async () => {
+      const favorites = await fetchFavoriteFiles();
+      setFavoriteFilesSidebar(favorites);
+    };
+    loadFavorites();
+  }, []);
+
+  const handleRecentFileSaved = async (fileId: string) => {
+    const recent = await fetchRecentFile();
+    const allFiles = flattenDriveFiles(driveFolders);
+    const favorites = await fetchFavoriteFiles();
+
+    const mappedFiles = recent
+      .map(r => allFiles.find(f => f.id === r.recentFile))
+      .filter(Boolean)
+      .map(f => ({
+        ...f!,
+        isFavorite: favorites.some(fav => fav.id === f!.id)
+      })) as FileItem[];
+
+    setRecentFilesSidebar(mappedFiles.slice(0, 12));
+    setRecentFilesMain(mappedFiles.slice(0, 8));
+  }
+
+  const handleToggleFavorite = async (fileId: string) => {
+    await onToggleFavorite(fileId); // 서버 호출
+
+    const favorites = await fetchFavoriteFiles();
+    setFavoriteFilesSidebar(favorites);
+
+    setRecentFilesMain(prev =>
+      prev.map(f => ({ ...f, isFavorite: favorites.some(fav => fav.id === f.id) }))
+    );
+    setRecentFilesSidebar(prev =>
+      prev.map(f => ({ ...f, isFavorite: favorites.some(fav => fav.id === f.id) }))
+    );
+  };
 
   return (
     <div className="h-screen flex bg-background overflow-hidden">
       {/* 공통 사이드바 */}
       <div className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out overflow-hidden`}>
         <ExplorerSidebar
-          recentFiles={recentFiles}
-          favoriteFiles={favoriteFiles}
+          favoriteFiles={favoriteFilesSidebar}
           driveFolders={driveFolders}
           toggleFolder={toggleFolder}
           onFileSelect={handleFileSelect}
           activeTabDefault="recent"
           onClose={() => setSidebarOpen(false)}
-          selectedFolderIds={selectedFolderIds}  // ✅ 선택 상태 전달
+          selectedFolderIds={selectedFolderIds}
           onToggleSelectFolder={toggleSelectCascade}
           onClearSelection={clearSelectedFolders}
           onSelectAll={selectAllFolders}
           getCheckState={getCheckState}
           fetchDriveFolders={fetchDriveFolders}
+          recentFiles={recentFilesSidebar}
+          onToggleFavorite={handleToggleFavorite}
         />
       </div>
 
@@ -226,9 +309,21 @@ export function MainChatInterface({
         <FileSearchModal
           isOpen={showFileModal}
           onClose={() => setShowFileModal(false)}
-          onFileSelect={onFileSelect}
-          files={files}
+          files={filesHook.files}
+          onFileSelect={handleFileSelect}
           onToggleFavorite={onToggleFavorite}
+          zIndex={50}
+          disableBackdropClick={!!selectedFile}
+        />
+      )}
+      {selectedFile && (
+        <FilePreviewDrawer
+          isOpen={showPreviewDrawer}
+          file={selectedFile}
+          onClose={handleClosePreview}
+          onToggleFavorite={handleToggleFavorite}
+          zIndex={100}
+          onRecentFileSaved={handleRecentFileSaved}
         />
       )}
     </div>

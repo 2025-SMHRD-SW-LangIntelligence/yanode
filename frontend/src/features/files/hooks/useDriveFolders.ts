@@ -46,19 +46,19 @@ export function useDriveFolders(
   }, [driveFolders]);
 
   // API 불러오기 + 변환
-  const fetchDriveFolders = async () => {
-    if (!apiToken) return;
+  const fetchDriveFolders = async (): Promise<DriveFolder[]> => {
+    if (!apiToken) return [];
     try {
       const res = await fetch("http://localhost:8090/api/dooray/driveLoading", {
         method: "POST",
         credentials: "include",
       });
       if (!res.ok) {
-        console.error("드라이브 불러오기 실패", await res.text());
-        return;
+        // console.error("드라이브 불러오기 실패", await res.text());
+        return [];
       }
       const data = await res.json();
-      console.log(data)
+      // console.log(data)
 
       const transformFolder = (folder: any, driveId?: string): DriveFolder => ({
         id: folder.id,
@@ -74,25 +74,29 @@ export function useDriveFolders(
           createdAt: f.createdAt,
           lastUpdater: f.lastUpdater.organizationMemberId,
           updatedAt: f.updatedAt,
+          driveId: f.driveId,
           icon: "📄",
         })),
         folders: (folder.subFolders || []).map((sub: any) => transformFolder(sub, driveId)),
       });
 
       const roots: DriveFolder[] = data.map((apiDrive: any) => ({
-        id: `root-${apiDrive.apiIdx || apiDrive.apiTitle}`,
+        id: `root-${apiDrive.apiId || apiDrive.apiTitle}`,
+        driveId: apiDrive.drives[0]?.project?.id,
         name: apiDrive.apiTitle,
         isExpanded: true,
         files: [], // 루트 파일 없으면 빈 배열
         folders: apiDrive.drives.flatMap((drive: any) =>
-          (drive.root.folders || []).map((f: any) => transformFolder(f, drive.id))
+          (drive.root.folders || []).map((f: any) => transformFolder(f, apiDrive.drives[0]?.project?.id))
         ),
       }));
 
       setDriveFolders(roots);
       localStorage.setItem('drive:folders', JSON.stringify(roots));
+      return roots;
     } catch (err) {
-      console.error("드라이브 API 오류", err);
+      // console.error("드라이브 API 오류", err);
+      return [];
     }
   };
 
