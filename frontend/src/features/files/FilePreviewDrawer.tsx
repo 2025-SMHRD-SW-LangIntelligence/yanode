@@ -141,8 +141,8 @@ export function FilePreviewDrawer({
 
   useEffect(() => {
     const loadUsers = async () => {
-      const creatorName = await findUser(file.creator);
-      const updaterName = await findUser(file.lastUpdater);
+      const creatorName = await findUser(file.creator, globalValue);
+      const updaterName = await findUser(file.lastUpdater, globalValue);
       setCreator(creatorName);
       setLastUpdater(updaterName);
     };
@@ -279,11 +279,22 @@ export function FilePreviewDrawer({
                   </>
                 )}
                 <div className="flex justify-center space-x-3">
-                  <Button className="bg-gradient-primary btn-glow text-white font-medium rounded-xl px-6 h-10 border-0">
+                  <Button
+                    className="bg-gradient-primary btn-glow text-white font-medium rounded-xl px-6 h-10 border-0"
+                    onClick={() => {
+                      saveRecentFile(file.id)
+                      downloadFile();
+                    }}>
                     <Download className="w-4 h-4 mr-2" />
                     다운로드
                   </Button>
-                  <Button variant="outline" className="font-medium rounded-xl px-6 h-10">
+                  <Button
+                    variant="outline"
+                    className="font-medium rounded-xl px-6 h-10"
+                    onClick={() => {
+                      saveRecentFile(file.id)
+                      window.open(`https://smhrd.dooray.com/preview-pages/drives/${file.id}`)
+                    }}>
                     <ExternalLink className="w-4 h-4 mr-2" />
                     열기
                   </Button>

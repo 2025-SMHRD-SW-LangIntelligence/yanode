@@ -1,8 +1,6 @@
 import type { FileItem } from '../../../types';
-import { useGlobal } from '../../../types/GlobalContext';
 
-export const fetchFavoriteFiles = async (): Promise<FileItem[]> => {
-  const { globalValue } = useGlobal();
+export const fetchFavoriteFiles = async (globalValue: string): Promise<FileItem[]> => {
   try {
     const res = await fetch(`${globalValue}/fav/list`, {
       method: "POST",

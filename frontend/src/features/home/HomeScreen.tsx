@@ -32,6 +32,7 @@ import { fetchRecentFile } from '../files/utils/fetchRecentFile';
 import { fetchFavoriteFiles } from '../files/utils/fetchFavoriteFiles';
 import { flattenDriveFiles } from "../../features/files/utils/flattenDriveFiles";
 import UploadScreen from '../upload/UploadScreen';
+import { useGlobal } from '../../types/GlobalContext';
 
 interface HomeScreenProps {
   onNavigateToChat: () => void;
@@ -53,6 +54,7 @@ export function HomeScreen({
   apiKeys,
   onDisconnectAllApiKeys,
 }: HomeScreenProps) {
+  const { globalValue } = useGlobal();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -118,9 +120,9 @@ export function HomeScreen({
 
   useEffect(() => {
     const loadRecentFiles = async () => {
-      const recentIds = await fetchRecentFile();
+      const recentIds = await fetchRecentFile(globalValue);
       const allFiles = flattenDriveFiles(driveFolders);
-      const favorites = await fetchFavoriteFiles();
+      const favorites = await fetchFavoriteFiles(globalValue);
 
       const mappedFiles = recentIds
         .map(r => allFiles.find(f => f.id === r.recentFile))
@@ -138,16 +140,16 @@ export function HomeScreen({
 
   useEffect(() => {
     const loadFavorites = async () => {
-      const favorites = await fetchFavoriteFiles();
+      const favorites = await fetchFavoriteFiles(globalValue);
       setFavoriteFilesSidebar(favorites);
     };
     loadFavorites();
   }, []);
 
   const handleRecentFileSaved = async (fileId: string) => {
-    const recent = await fetchRecentFile();
+    const recent = await fetchRecentFile(globalValue);
     const allFiles = flattenDriveFiles(driveFolders);
-    const favorites = await fetchFavoriteFiles();
+    const favorites = await fetchFavoriteFiles(globalValue);
 
     const mappedFiles = recent
       .map(r => allFiles.find(f => f.id === r.recentFile))
@@ -164,7 +166,7 @@ export function HomeScreen({
   const handleToggleFavorite = async (fileId: string) => {
     await onToggleFavorite(fileId); // 서버 호출
 
-    const favorites = await fetchFavoriteFiles();
+    const favorites = await fetchFavoriteFiles(globalValue);
     setFavoriteFilesSidebar(favorites);
 
     setRecentFilesMain(prev =>

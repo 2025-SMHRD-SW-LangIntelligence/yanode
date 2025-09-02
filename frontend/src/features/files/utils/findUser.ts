@@ -1,7 +1,4 @@
-import { useGlobal } from "../../../types/GlobalContext";
-
-export async function findUser(userId: string): Promise<string> {
-  const { globalValue } = useGlobal();
+export async function findUser(userId: string, globalValue: string): Promise<string> {
   try {
     const res = await fetch(`${globalValue}/api/dooray/userId?userId=${userId}`, {
       method: 'POST',
