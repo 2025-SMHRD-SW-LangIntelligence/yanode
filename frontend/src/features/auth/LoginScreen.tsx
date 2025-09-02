@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card } from "../../components/ui/card";
 import { Label } from "../../components/ui/label";
 import { Eye, EyeOff, Sparkles } from "lucide-react";
+import { useGlobal } from "../../types/GlobalContext";
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -14,6 +15,7 @@ export function LoginScreen({
   onLogin,
   onSignupClick,
 }: LoginScreenProps) {
+  const { globalValue } = useGlobal();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +27,7 @@ export function LoginScreen({
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8090/api/auth/login", {
+      const res = await fetch(`${globalValue}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -165,7 +167,7 @@ export function LoginScreen({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => window.location.href = "http://localhost:8090/oauth2/authorization/google"}
+                onClick={() => window.location.href = `${globalValue}/oauth2/authorization/google`}
                 className="glass border-border bg-card h-11 font-medium hover:bg-accent transition-all text-foreground"
               >
                 <svg
@@ -194,7 +196,7 @@ export function LoginScreen({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => window.location.href = "http://localhost:8090/oauth2/authorization/kakao"}
+                onClick={() => window.location.href = `${globalValue}oauth2/authorization/kakao`}
                 className="glass border-border bg-card h-11 font-medium hover:bg-accent transition-all text-foreground"
               >
                 <svg

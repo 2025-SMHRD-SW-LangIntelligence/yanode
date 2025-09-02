@@ -40,6 +40,7 @@ import {
   Loader2
 } from 'lucide-react';
 import ChangePasswordModal from "./ChangePassword";
+import { useGlobal } from '../../types/GlobalContext';
 
 
 
@@ -82,6 +83,7 @@ export function SettingsScreen({
     level: '-',
     lastPwChgAt: '-'
   });
+  const { globalValue } = useGlobal();
   const [isEditing, setIsEditing] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [editingApiKey, setEditingApiKey] = useState<{ id: string; name: string; key: string } | null>(null);
@@ -115,7 +117,7 @@ export function SettingsScreen({
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://localhost:8090/api/auth/logout", {
+      const res = await fetch(`${globalValue}/api/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -149,7 +151,7 @@ export function SettingsScreen({
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch('http://localhost:8090/api/auth/me', {
+        const res = await fetch(`${globalValue}/api/auth/me`, {
           method: 'GET',
           credentials: 'include'
         });
@@ -175,7 +177,7 @@ export function SettingsScreen({
 
   const fetchUserApis = async () => {
     try {
-      const res = await fetch('http://localhost:8090/api/auth/myApis', {
+      const res = await fetch(`${globalValue}/api/auth/myApis`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -200,7 +202,7 @@ export function SettingsScreen({
   const handleSaveProfile = async () => {
     setIsEditing(false);
     try {
-      const res = await fetch('http://localhost:8090/api/auth/update', {
+      const res = await fetch(`${globalValue}/api/auth/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -235,7 +237,7 @@ export function SettingsScreen({
     if (!confirm('정말 이 API 키를 삭제하시겠습니까?')) return;
 
     try {
-      const res = await fetch(`http://localhost:8090/api/auth/deleteApi?apiIdx=${apiIdx}`, {
+      const res = await fetch(`${globalValue}/api/auth/deleteApi?apiIdx=${apiIdx}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -259,7 +261,7 @@ export function SettingsScreen({
     // 진행 시작 표시
     setConnecting(prev => ({ ...prev, [apiIdx]: { type: 'connect', start: Date.now() } }));
     try {
-      const res = await fetch(`http://localhost:8090/api/dooray/driveConnect?apiIdx=${apiIdx}`, {
+      const res = await fetch(`${globalValue}/api/dooray/driveConnect?apiIdx=${apiIdx}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
@@ -297,7 +299,7 @@ export function SettingsScreen({
   const onDisconnectApiKey = async (apiIdx: number) => {
     setConnecting(prev => ({ ...prev, [apiIdx]: { type: 'disconnect', start: Date.now() } }));
     try {
-      await fetch(`http://localhost:8090/api/dooray/driveDisconnect?apiIdx=${encodeURIComponent(apiIdx)}`, {
+      await fetch(`${globalValue}/api/dooray/driveDisconnect?apiIdx=${encodeURIComponent(apiIdx)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
@@ -326,7 +328,7 @@ export function SettingsScreen({
     let userInput = prompt(`회원 탈퇴 하시겠습니까? \n (${profileData.name}/탈퇴한다)`, `${profileData.name}/탈퇴한다`)
     if (userInput === `${profileData.name}/탈퇴한다`) {
       try {
-        const res = await fetch('http://localhost:8090/api/auth/userDelete', {
+        const res = await fetch(`${globalValue}/api/auth/userDelete`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

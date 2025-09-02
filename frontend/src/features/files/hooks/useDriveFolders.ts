@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { FileItem } from '../../../types';
+import { useGlobal } from '../../../types/GlobalContext';
 
 export interface DriveFolder {
   id: string;
@@ -18,6 +19,7 @@ export function useDriveFolders(
   initialFiles: FileItem[],
   onSelectAll?: () => void
 ) {
+  const { globalValue } = useGlobal();
   const [driveFolders, setDriveFolders] = useState<DriveFolder[]>(() => {
     try {
       const saved = localStorage.getItem('drive:folders');
@@ -49,7 +51,7 @@ export function useDriveFolders(
   const fetchDriveFolders = async (): Promise<DriveFolder[]> => {
     if (!apiToken) return [];
     try {
-      const res = await fetch("http://localhost:8090/api/dooray/driveLoading", {
+      const res = await fetch(`${globalValue}/api/dooray/driveLoading`, {
         method: "POST",
         credentials: "include",
       });

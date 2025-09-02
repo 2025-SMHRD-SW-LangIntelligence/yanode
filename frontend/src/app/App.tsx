@@ -1,6 +1,6 @@
 // C:\Users\smhrd\Desktop\front_f\SS\frontend\src\App.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import type { ApiKey } from '../types';
 
@@ -24,8 +24,10 @@ import MobileHomeScreen from '../components/mobile/MobileHomeScreen';
 import MobileChatInterface from '../components/mobile/MobileChatInterface';
 import MobileSettingsScreen from '../components/mobile/MobileSettingsScreen';
 import MobileBottomNav from '../components/mobile/MobileBottomNav';
+import { useGlobal } from '../types/GlobalContext.tsx';
 
 export default function App() {
+  const { globalValue } = useGlobal();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]); // 중앙 상태
@@ -35,7 +37,7 @@ export default function App() {
 
   const handleNavigateToChat = (query?: string) => {
     if (typeof query === 'string' && query.trim().length > 0) {
-      navigate('/chat', { state: { query }});
+      navigate('/chat', { state: { query } });
     } else {
       navigate('/chat');
     }
@@ -50,7 +52,7 @@ export default function App() {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const res = await fetch("http://localhost:8090/api/auth/me", {
+        const res = await fetch(`${globalValue}/api/auth/me`, {
           method: 'GET',
           credentials: "include"
         });
@@ -64,12 +66,12 @@ export default function App() {
       }
     };
     checkLogin();
-  }, []);
+  }, [globalValue]);
 
   useEffect(() => {
     const fetchUserApis = async () => {
       try {
-        const res = await fetch('http://localhost:8090/api/auth/myApis', {
+        const res = await fetch(`${globalValue}/api/auth/myApis`, {
           method: 'GET',
           credentials: 'include',
         });
@@ -82,7 +84,7 @@ export default function App() {
     };
 
     fetchUserApis();
-  }, []);
+  }, [globalValue]);
 
   const {
     files,

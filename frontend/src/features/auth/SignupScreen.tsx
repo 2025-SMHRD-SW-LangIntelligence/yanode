@@ -4,6 +4,7 @@ import { Input } from "../../components/ui/input";
 import { Card } from "../../components/ui/card";
 import { Label } from "../../components/ui/label";
 import { Eye, EyeOff, ArrowLeft, Sparkles } from "lucide-react";
+import { useGlobal } from "../../types/GlobalContext";
 
 interface SignupScreenProps {
   onSignup: () => void;
@@ -11,6 +12,7 @@ interface SignupScreenProps {
 }
 
 export function SignupScreen({ onSignup, onBackToLogin }: SignupScreenProps) {
+  const { globalValue } = useGlobal();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -30,7 +32,7 @@ export function SignupScreen({ onSignup, onBackToLogin }: SignupScreenProps) {
     }
     
     try {
-      const res = await fetch("http://localhost:8090/api/auth/register", {
+      const res = await fetch(`${globalValue}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

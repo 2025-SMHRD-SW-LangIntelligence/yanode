@@ -1,8 +1,10 @@
 import type { FileItem } from '../../../types';
+import { useGlobal } from '../../../types/GlobalContext';
 
 export async function fetchRecentFile(): Promise<FileItem[]> {
+  const { globalValue } = useGlobal();
   try {
-    const res = await fetch('http://localhost:8090/recentFile/show', {
+    const res = await fetch(`${globalValue}/recentFile/show`, {
       method: 'POST',
       credentials: 'include'
     });

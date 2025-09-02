@@ -10,6 +10,7 @@ import {
     DialogFooter,
 } from "../../components/ui/dialog";
 import { Lock, Eye, EyeOff } from "lucide-react";
+import { useGlobal } from "../../types/GlobalContext";
 
 interface ChangePasswordModalProps {
     isOpen: boolean;
@@ -20,6 +21,7 @@ export default function ChangePasswordModal({
     isOpen,
     onClose,
 }: ChangePasswordModalProps) {
+    const { globalValue } = useGlobal();
     const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -42,7 +44,7 @@ export default function ChangePasswordModal({
         }
 
         try {
-            const res = await fetch(`http://localhost:8090/api/auth/chgPw?pw=${newPassword}`, {
+            const res = await fetch(`${globalValue}/api/auth/chgPw?pw=${newPassword}`, {
                 method: 'POST',
                 credentials: 'include'
             });

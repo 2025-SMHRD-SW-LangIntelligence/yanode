@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Upload, Settings, User, FileText, Folder, ChevronRight, ChevronDown } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import type { DriveFolder } from "../files/hooks/useDriveFolders";
+import { useGlobal } from "../../types/GlobalContext";
 
 interface UploadedFile {
   file: File;
@@ -10,6 +11,7 @@ interface UploadedFile {
 }
 
 export default function UploadScreen() {
+  const { globalValue } = useGlobal();
   const navigate = useNavigate();
   const location = useLocation();
   const driveFolders: DriveFolder[] = location.state?.driveFolders || [];
@@ -110,7 +112,7 @@ export default function UploadScreen() {
     formData.append("apiURL", apiURL);
 
     // 🔹 Spring 서버에 업로드 요청
-    const response = await fetch("http://localhost:8090/api/dooray/uploadFile", {
+    const response = await fetch(`${globalValue}/api/dooray/uploadFile`, {
       method: "POST",
       body: formData,
       credentials: "include"

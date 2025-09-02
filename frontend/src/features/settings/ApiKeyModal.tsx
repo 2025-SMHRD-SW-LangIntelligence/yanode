@@ -5,6 +5,7 @@ import { Label } from '../../components/ui/label';
 import { X, Key, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { ApiKey } from '../../types';
+import { useGlobal } from '../../types/GlobalContext';
 
 
 interface ApiKeyModalProps {
@@ -17,6 +18,7 @@ interface ApiKeyModalProps {
 }
 
 export function ApiKeyModal({ isOpen, onClose, onSave, editingKey, refetchApis }: ApiKeyModalProps) {
+  const { globalValue } = useGlobal();
   const [apiKey, setApiKey] = useState(editingKey?.apiURL || '');
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [keyName, setKeyName] = useState(editingKey?.apiTitle || '');
@@ -37,7 +39,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, editingKey, refetchApis }
     setValidationStatus('validating');
 
     try {
-      const res = await fetch('http://localhost:8090/api/auth/addApi', {
+      const res = await fetch(`${globalValue}/api/auth/addApi`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

@@ -21,6 +21,7 @@ import {
 import type { FileItem } from '../../types';
 import { findUser } from './utils/findUser';
 import { fetchFavoriteFiles } from './utils/fetchFavoriteFiles';
+import { useGlobal } from '../../types/GlobalContext';
 
 interface FilePreviewDrawerProps {
   file: FileItem;
@@ -39,6 +40,7 @@ export function FilePreviewDrawer({
   zIndex = 100,
   onRecentFileSaved,
 }: FilePreviewDrawerProps) {
+  const { globalValue } = useGlobal();
   const [showActions, setShowActions] = useState(false);
   const [creator, setCreator] = useState<string>('로딩중...');
   const [lastUpdater, setLastUpdater] = useState<string>('로딩중...');
@@ -49,7 +51,7 @@ export function FilePreviewDrawer({
 
   const saveRecentFile = async (fileId: string) => {
     try {
-      const res = await fetch(`http://localhost:8090/recentFile/save?fileId=${fileId}`, {
+      const res = await fetch(`${globalValue}/recentFile/save?fileId=${fileId}`, {
         method: "POST",
         credentials: "include"
       })
@@ -69,7 +71,7 @@ export function FilePreviewDrawer({
   const handleToggleFavorite = async () => {
     try {
       const endpoint = isFavorite ? "off" : "on";
-      const res = await fetch(`http://localhost:8090/fav/${endpoint}?favUrl=${file.id}`, {
+      const res = await fetch(`${globalValue}/fav/${endpoint}?favUrl=${file.id}`, {
         method: "POST",
         credentials: "include"
       });
@@ -86,7 +88,7 @@ export function FilePreviewDrawer({
 
   const fetchFavorite = async () => {
     try {
-      const res = await fetch(`http://localhost:8090/fav/exist?favUrl=${file.id}`, {
+      const res = await fetch(`${globalValue}/fav/exist?favUrl=${file.id}`, {
         method: "POST",
         credentials: "include"
       });
@@ -276,6 +278,16 @@ export function FilePreviewDrawer({
                     </p>
                   </>
                 )}
+                <div className="flex justify-center space-x-3">
+                  <Button className="bg-gradient-primary btn-glow text-white font-medium rounded-xl px-6 h-10 border-0">
+                    <Download className="w-4 h-4 mr-2" />
+                    다운로드
+                  </Button>
+                  <Button variant="outline" className="font-medium rounded-xl px-6 h-10">
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    열기
+                  </Button>
+                </div>
               </div>
 
 
