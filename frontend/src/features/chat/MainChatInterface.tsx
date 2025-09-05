@@ -322,9 +322,6 @@ export function MainChatInterface({
         {/* 입력 영역 */}
         <footer className="bg-background border-t-2 border-border p-4">
           <div className="max-w-4xl mx-auto flex items-end space-x-3">
-            <Button variant="ghost" size="sm" className="w-10 h-10 p-0">
-              <Paperclip className="w-5 h-5" />
-            </Button>
             <div className="flex-1 relative">
               <Textarea
                 value={inputValue}
@@ -335,7 +332,7 @@ export function MainChatInterface({
                 disabled={isTyping}
               />
               <Button
-                onClick={handleSendMessage}
+                onClick={() => handleSendMessage()}
                 disabled={!inputValue.trim() || isTyping}
                 className="absolute right-2 bottom-2 w-8 h-8 p-0"
               >
