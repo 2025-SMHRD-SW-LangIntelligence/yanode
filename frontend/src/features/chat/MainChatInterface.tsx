@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
+import { askRag } from '../../api/rag';
 import {
   Send,
   Paperclip,
@@ -98,25 +99,31 @@ export function MainChatInterface({
     setInputValue('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      // ✅ 선택된 폴더 범위로 검색
-      const searchResults = searchFiles(messageContent, selectedFolderIds);
-      const botContent =
-        searchResults.length === 0
-          ? `"${messageContent}"에 대한 파일을 찾지 못했습니다.`
-          : `"${messageContent}"에 대한 검색 결과를 찾았습니다.`;
+    try {
+      // ✅ FastAPI 호출
+      const data: { answer?: string; items?: any[] } = await askRag(messageContent);
+
 
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: botContent,
-        files: searchResults,
+        content: data?.answer ?? `"${messageContent}"에 대한 응답이 없습니다.`,
+        // files: mappedFiles, // 필요 시 위 매핑 주석 해제
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, botMessage]);
+    } catch (err: any) {
+      const botMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: `에러: ${err?.message ?? String(err)}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    } finally {
       setIsTyping(false);
-    }, 800);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -265,20 +272,52 @@ export function MainChatInterface({
         {/* 채팅 영역 */}
         <main className="flex-1 overflow-y-auto p-6 bg-background">
           <div className="max-w-4xl mx-auto space-y-6">
+
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className="rounded-lg border px-3 py-2 text-sm bg-background">
-                  {message.content}
-                </div>
+                {/* ✅ 봇 메시지면 Dooray URL을 iframe으로 치환해 렌더링 */}
+                {message.type === 'bot' ? (
+                  <div
+                    className="rounded-lg border px-3 py-2 text-sm bg-background"
+                    dangerouslySetInnerHTML={{
+                      __html: message.content
+                        // 줄바꿈 보존(선택)
+                        .replace(/\n/g, '<br/>')
+                        // Dooray preview URL → iframe 치환
+                        .replace(
+                          /(https?:\/\/smhrd\.dooray\.com\/preview-pages\/drives\/[A-Za-z0-9]+)/g,
+                          (url) => `
+                    <div class="my-2">
+                      <iframe
+                        src="${url}"
+                        width="100%"
+                        height="400"
+                        style="border:none;border-radius:8px;"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                        allowfullscreen
+                      ></iframe>
+                    </div>
+                  `
+                        )
+                    }}
+                  />
+                ) : (
+                  // ✅ 유저 메시지는 텍스트로 그대로
+                  <div className="rounded-lg border px-3 py-2 text-sm bg-background">
+                    {message.content}
+                  </div>
+                )}
               </div>
             ))}
+
             {isTyping && <div className="text-sm text-muted-foreground">...</div>}
             <div ref={messagesEndRef} />
           </div>
         </main>
+
 
         {/* 입력 영역 */}
         <footer className="bg-background border-t-2 border-border p-4">

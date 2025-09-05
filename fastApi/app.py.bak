@@ -1,0 +1,91 @@
+cd from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+import os, traceback
+import uuid
+from typing import Optional
+
+
+from rag_agent.indexer import ensure_index, CHECKLIST_FOLDER_IDS, GLOBAL_INDEX
+# 세션형 에이전트용 import
+from rag_agent.agent import agent as default_agent, make_agent
+
+app = FastAPI(title="Smart Search")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
+)
+
+# ===== 모델 =====
+class AskIn(BaseModel):
+    query: str
+
+class ChatIn(BaseModel):
+    session_id: Optional[str] = None   
+    message: str
+    reset: bool = False
+
+
+def _ensure_ready():
+    if not GLOBAL_INDEX.get("items"):
+        ensure_index(CHECKLIST_FOLDER_IDS or None, force=False)
+
+# ===== 전역 예외 핸들러: 항상 JSON 에러로 반환 =====
+@app.exception_handler(Exception)
+async def _all_exc(request: Request, exc: Exception):
+    traceback.print_exc()
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
+
+# ===== 헬스/진단 =====
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+@app.get("/_env")
+def _env():
+    return {
+        "OPENAI_API_KEY_SET": bool(os.getenv("OPENAI_API_KEY")),
+        "DOORAY_API_TOKEN_SET": bool(os.getenv("DOORAY_API_TOKEN")),
+        "OPENAI_MODEL": os.getenv("OPENAI_MODEL", ""),
+    }
+
+@app.get("/_status")
+def _status():
+    return {
+        "indexed": len(GLOBAL_INDEX.get("items", [])),
+        "built_at": GLOBAL_INDEX.get("built_at"),
+        "roots": GLOBAL_INDEX.get("roots"),
+        "drive_id": GLOBAL_INDEX.get("drive_id"),
+    }
+
+# ===== 단발성 질의 =====
+@app.post("/ask")
+def ask(in_: AskIn):
+    q = (in_.query or "").strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="query is required")
+    _ensure_ready()
+    out = default_agent.invoke({"input": q})
+    return {"answer": str(out)}
+
+SESSIONS = {}  # 프로세스 메모리(서버 재시작 시 초기화)
+
+@app.post("/chat")
+def chat(in_: ChatIn):
+    sid = (in_.session_id or "").strip()
+    new_session = False
+
+    # 세션ID 없으면 서버가 발급
+    if not sid:
+        sid = str(uuid.uuid4())
+        new_session = True
+
+    # reset이거나 처음 보는 sid면 새 에이전트 생성(클라가 보낸 sid도 존중해 upsert)
+    if in_.reset or sid not in SESSIONS:
+        SESSIONS[sid] = make_agent()
+        new_session = True
+
+    _ensure_ready()
+    out = SESSIONS[sid].invoke({"input": in_.message})
+    return {"answer": str(out), "session_id": sid, "new": new_session}

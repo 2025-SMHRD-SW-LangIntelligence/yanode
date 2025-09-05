@@ -47,6 +47,7 @@ export default function ExplorerSidebar({
   const [loading, setLoading] = useState(false);
   const [driveFoldersLocal, setDriveFoldersLocal] = useState<DriveFolder[] | null>(null);
   const allFiles = flattenDriveFiles(driveFolders);
+  const [reindexing, setReindexing] = useState(false);
 
   const favoriteFilesToRender = favoriteFiles
     .map(r => allFiles.find(f => f.id === r.favUrl))
@@ -82,6 +83,32 @@ export default function ExplorerSidebar({
     }, 400);
     return () => clearInterval(id);
   }, [loading]);
+
+  const handleReindex = async () => {
+    if (!selectedFolderIds || selectedFolderIds.length === 0 || reindexing) {
+      return;
+    }
+    setReindexing(true);
+    try {
+      const response = await fetch('http://localhost:8000/reindex', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder_ids: selectedFolderIds }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '재인덱싱에 실패했습니다.');
+      }
+      const result = await response.json();
+      console.log('재인덱싱 성공:', result);
+      alert('선택한 폴더가 AI 검색 대상으로 성공적으로 적용되었습니다!');
+    } catch (error) {
+      console.error('재인덱싱 중 오류 발생:', error);
+      alert(`오류가 발생했습니다: ${(error as Error).message}`);
+    } finally {
+      setReindexing(false);
+    }
+  };
 
   return (
     <div className="w-80 h-full bg-muted border-r-2 border-border flex flex-col">
@@ -140,6 +167,14 @@ export default function ExplorerSidebar({
               <div className="flex items-center gap-2">
                 <button className="underline hover:text-foreground" onClick={onSelectAll}>전체선택</button>
                 <button className="underline hover:text-foreground" onClick={onClearSelection}>초기화</button>
+                <button
+                  className="underline font-bold text-primary hover:text-foreground disabled:opacity-50 disabled:no-underline"
+                  onClick={handleReindex}
+                  disabled={reindexing || !selectedFolderIds || selectedFolderIds.length === 0}
+                  title="선택한 폴더를 AI 검색 대상으로 적용"
+                >
+                  {reindexing ? "적용 중..." : "적용"}
+                </button>
 
                 {/* 새로고침 버튼 추가 */}
                 <button

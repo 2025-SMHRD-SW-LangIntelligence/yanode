@@ -60,7 +60,7 @@ export function useDriveFolders(
         return [];
       }
       const data = await res.json();
-      // console.log(data)
+      console.log(data)
 
       const getFileIcon = (filename: string): string => {
         const ext = filename.split('.').pop()?.toLowerCase();

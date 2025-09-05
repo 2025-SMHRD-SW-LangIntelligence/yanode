@@ -137,7 +137,7 @@ public class DoorayService {
 	 * 특정 폴더 내 파일 조회
 	 */
 	private List<Map<String, Object>> getFiles(String apiToken, String driveId, String parentId) throws Exception {
-		String url = DOORAY_BASE_URL + "/drive/v1/drives/" + driveId + "/files?parentId=" + parentId;
+		String url = DOORAY_BASE_URL + "/drive/v1/drives/" + driveId + "/files?parentId=" + parentId + "&size=100&page=0";
 		Map<String, Object> response = callDoorayApi(apiToken, url);
 
 		List<Map<String, Object>> files = (List<Map<String, Object>>) response.get("result");
