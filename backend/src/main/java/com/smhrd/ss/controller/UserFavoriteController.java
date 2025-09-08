@@ -16,7 +16,7 @@ import jakarta.servlet.http.HttpSession;
 
 
 @RestController
-@RequestMapping("/fav")
+@RequestMapping("/api/fav")
 public class UserFavoriteController {
     @Autowired
     UserFavoriteService userFavoriteService;

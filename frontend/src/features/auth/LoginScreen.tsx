@@ -196,7 +196,7 @@ export function LoginScreen({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => window.location.href = `${globalValue}oauth2/authorization/kakao`}
+                onClick={() => window.location.href = `${globalValue}/oauth2/authorization/kakao`}
                 className="glass border-border bg-card h-11 font-medium hover:bg-accent transition-all text-foreground"
               >
                 <svg

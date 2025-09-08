@@ -51,7 +51,7 @@ export function FilePreviewDrawer({
 
   const saveRecentFile = async (fileId: string) => {
     try {
-      const res = await fetch(`${globalValue}/recentFile/save?fileId=${fileId}`, {
+      const res = await fetch(`${globalValue}/api/recentFile/save?fileId=${fileId}`, {
         method: "POST",
         credentials: "include"
       })
@@ -71,7 +71,7 @@ export function FilePreviewDrawer({
   const handleToggleFavorite = async () => {
     try {
       const endpoint = isFavorite ? "off" : "on";
-      const res = await fetch(`${globalValue}/fav/${endpoint}?favUrl=${file.id}`, {
+      const res = await fetch(`${globalValue}/api/fav/${endpoint}?favUrl=${file.id}`, {
         method: "POST",
         credentials: "include"
       });
@@ -88,7 +88,7 @@ export function FilePreviewDrawer({
 
   const fetchFavorite = async () => {
     try {
-      const res = await fetch(`${globalValue}/fav/exist?favUrl=${file.id}`, {
+      const res = await fetch(`${globalValue}/api/fav/exist?favUrl=${file.id}`, {
         method: "POST",
         credentials: "include"
       });

@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpSession;
 
 
 @RestController
-@RequestMapping("/recentFile")
+@RequestMapping("/api/recentFile")
 public class UserRecentFileController {
     @Autowired
     UserRecentFileService userRecentFileService;

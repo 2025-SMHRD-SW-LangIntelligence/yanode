@@ -8,7 +8,7 @@ interface GlobalContextType {
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
 export const GlobalProvider = ({ children }: { children: ReactNode }) => {
-  const [globalValue, setGlobalValue] = useState("http://localhost:8090");
+  const [globalValue, setGlobalValue] = useState("http://223.130.140.45:8090");
 
   return (
     <GlobalContext.Provider value={{ globalValue, setGlobalValue }}>
