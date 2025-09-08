@@ -71,7 +71,7 @@ public class SecurityConfig {
                     }
 
                     request.getSession().setAttribute("user", user); // 세션에 저장
-                    response.sendRedirect("http://localhost:5173/"); // React 홈으로
+                    response.sendRedirect("/"); // React 홈으로
                 })
             );
 

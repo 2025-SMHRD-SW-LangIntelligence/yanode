@@ -2,7 +2,7 @@ import type { FileItem } from '../../../types';
 
 export async function fetchRecentFile(globalValue: string): Promise<FileItem[]> {
   try {
-    const res = await fetch(`${globalValue}/recentFile/show`, {
+    const res = await fetch(`${globalValue}/api/recentFile/show`, {
       method: 'POST',
       credentials: 'include'
     });
