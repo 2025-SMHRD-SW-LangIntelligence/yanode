@@ -14,6 +14,7 @@ export interface FileItem {
   path: string;
   icon?: string;       // 이모지/아이콘 (옵션)
   isFavorite?: boolean;
+  driveId?: string;
 }
 
 export interface DriveFolder {

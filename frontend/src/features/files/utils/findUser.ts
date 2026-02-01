@@ -1,6 +1,6 @@
-export async function findUser(userId: string): Promise<string> {
+export async function findUser(userId: string, globalValue: string): Promise<string> {
   try {
-    const res = await fetch(`http://localhost:8090/api/dooray/userId?userId=${userId}`, {
+    const res = await fetch(`${globalValue}/api/dooray/userId?userId=${userId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include'

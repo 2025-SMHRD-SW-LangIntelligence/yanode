@@ -30,13 +30,13 @@ export function useAuth(): AuthHookReturn {
   const navigateToScreen = useCallback((screen: Screen) => {
     // 인증 상태 검증
     if (!isAuthenticated && !['login', 'signup'].includes(screen)) {
-      console.warn(`Cannot navigate to ${screen} without authentication`);
+      // console.warn(`Cannot navigate to ${screen} without authentication`);
       return;
     }
     
     // 온보딩 완료 상태 검증
     if (isAuthenticated && !hasCompletedOnboarding && !['onboarding'].includes(screen)) {
-      console.warn(`Cannot navigate to ${screen} without completing onboarding`);
+      // console.warn(`Cannot navigate to ${screen} without completing onboarding`);
       return;
     }
     

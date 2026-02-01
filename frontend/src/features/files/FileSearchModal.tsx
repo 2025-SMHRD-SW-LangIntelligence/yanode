@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { FileItem } from '../../types';
 import { findUser } from './utils/findUser';
+import { useGlobal } from '../../types/GlobalContext';
 
 interface FileSearchModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export function FileSearchModal({
   zIndex = 50,
   disableBackdropClick = false,
 }: FileSearchModalProps & { disableBackdropClick?: boolean }) {
+  const { globalValue } = useGlobal();
   const [searchQuery, setSearchQuery] = useState('');
   const [fileType, setFileType] = useState('all');
   const [owner, setOwner] = useState('all');
@@ -63,7 +65,7 @@ export function FileSearchModal({
       const names = await Promise.all(
         uniqueIds.map(async (id) => {
           if (!id) return { id: "-", name: "-" };
-          const name = await findUser(id);
+          const name = await findUser(id, globalValue);
           return { id, name };
         })
       );

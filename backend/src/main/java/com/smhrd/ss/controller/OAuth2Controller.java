@@ -10,7 +10,7 @@ import jakarta.servlet.http.HttpSession;
 @RestController
 public class OAuth2Controller {
 
-    @GetMapping("/oauth2/success")
+    @GetMapping("/api/oauth2/success")
     public String success(@AuthenticationPrincipal OAuth2User principal, HttpSession session) {
         session.setAttribute("user", principal.getAttributes());
         return "로그인 성공!";

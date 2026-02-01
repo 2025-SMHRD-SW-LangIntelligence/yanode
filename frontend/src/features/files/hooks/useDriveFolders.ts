@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { FileItem } from '../../../types';
+import { useGlobal } from '../../../types/GlobalContext';
 
 export interface DriveFolder {
   id: string;
@@ -18,11 +19,12 @@ export function useDriveFolders(
   initialFiles: FileItem[],
   onSelectAll?: () => void
 ) {
+  const { globalValue } = useGlobal();
   const [driveFolders, setDriveFolders] = useState<DriveFolder[]>(() => {
     try {
       const saved = localStorage.getItem('drive:folders');
       return saved ? JSON.parse(saved) : [];
-    } catch { return [];}
+    } catch { return []; }
   });
   const [activeFolderId, setActiveFolderId] = useState<string | undefined>(undefined);
   const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>(() => {
@@ -46,19 +48,51 @@ export function useDriveFolders(
   }, [driveFolders]);
 
   // API 불러오기 + 변환
-  const fetchDriveFolders = async () => {
-    if (!apiToken) return;
+  const fetchDriveFolders = async (): Promise<DriveFolder[]> => {
+    if (!apiToken) return [];
     try {
-      const res = await fetch("http://localhost:8090/api/dooray/driveLoading", {
+      const res = await fetch(`${globalValue}/api/dooray/driveLoading`, {
         method: "POST",
         credentials: "include",
       });
       if (!res.ok) {
-        console.error("드라이브 불러오기 실패", await res.text());
-        return;
+        // console.error("드라이브 불러오기 실패", await res.text());
+        return [];
       }
       const data = await res.json();
-      console.log(data)
+      // console.log(data)
+
+      const getFileIcon = (filename: string): string => {
+        const ext = filename.split('.').pop()?.toLowerCase();
+
+        switch (ext) {
+          case 'hwp':             // 한글
+            return '📝';
+          case 'doc':
+          case 'docx':            // 워드
+            return '📝';
+          case 'xls':
+          case 'xlsx':            // 엑셀
+            return '📊';
+          case 'ppt':
+          case 'pptx':            // 파워포인트
+            return '📈';
+          case 'txt':             // 텍스트 파일
+            return '📃';
+          case 'jpg':
+          case 'jpeg':
+          case 'png':
+          case 'gif':
+          case 'bmp':
+          case 'svg':             // 사진
+            return '🖼️';
+          case 'pdf':             // PDF
+            return '📄';
+          default:                // 기타 파일
+            return '📁';
+        }
+      };
+
 
       const transformFolder = (folder: any, driveId?: string): DriveFolder => ({
         id: folder.id,
@@ -74,25 +108,29 @@ export function useDriveFolders(
           createdAt: f.createdAt,
           lastUpdater: f.lastUpdater.organizationMemberId,
           updatedAt: f.updatedAt,
-          icon: "📄",
+          driveId: f.driveId,
+          icon: getFileIcon(f.name.split(".").pop() || ''),
         })),
         folders: (folder.subFolders || []).map((sub: any) => transformFolder(sub, driveId)),
       });
 
       const roots: DriveFolder[] = data.map((apiDrive: any) => ({
-        id: `root-${apiDrive.apiIdx || apiDrive.apiTitle}`,
+        id: `root-${apiDrive.apiId || apiDrive.apiTitle}`,
+        driveId: apiDrive.drives[0]?.project?.id,
         name: apiDrive.apiTitle,
         isExpanded: true,
         files: [], // 루트 파일 없으면 빈 배열
         folders: apiDrive.drives.flatMap((drive: any) =>
-          (drive.root.folders || []).map((f: any) => transformFolder(f, drive.id))
+          (drive.root.folders || []).map((f: any) => transformFolder(f, apiDrive.drives[0]?.project?.id))
         ),
       }));
 
       setDriveFolders(roots);
       localStorage.setItem('drive:folders', JSON.stringify(roots));
+      return roots;
     } catch (err) {
-      console.error("드라이브 API 오류", err);
+      // console.error("드라이브 API 오류", err);
+      return [];
     }
   };
 

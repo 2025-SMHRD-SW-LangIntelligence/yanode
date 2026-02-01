@@ -5,11 +5,11 @@ import DriveTree from "../drive/DriveTree";
 import type { FileItem } from "../../types";
 import type { DriveFolder } from "../../features/files/hooks/useDriveFolders";
 import { FileSearchModal } from "../../features/files/FileSearchModal";
+import { flattenDriveFiles } from "../../features/files/utils/flattenDriveFiles";
 
 type CheckState = "checked" | "indeterminate" | "unchecked";
 
 export default function ExplorerSidebar({
-  recentFiles,
   favoriteFiles,
   driveFolders,
   toggleFolder,
@@ -23,8 +23,8 @@ export default function ExplorerSidebar({
   onSelectAll,
   getCheckState,
   fetchDriveFolders,
+  recentFiles,
 }: {
-  recentFiles: FileItem[];
   favoriteFiles: FileItem[];
   driveFolders: DriveFolder[];
   toggleFolder: (id: string, parentId?: string) => void;
@@ -38,25 +38,31 @@ export default function ExplorerSidebar({
   onSelectAll?: () => void;
   getCheckState?: (id: string) => CheckState;
   fetchDriveFolders: () => void;
+  recentFiles: FileItem[];
 }) {
   const [activeTab, setActiveTab] = useState<"recent" | "favorites" | "drive">(activeTabDefault);
-  const currentSidebarFiles =
-    activeTab === "recent" ? recentFiles.slice(0, 6) : favoriteFiles.slice(0, 6);
   const [loadingDots, setLoadingDots] = useState(0);
 
   // ====== 내부 드라이브 상태 (외부 미제공 시 자동 로딩) ======
   const [loading, setLoading] = useState(false);
   const [driveFoldersLocal, setDriveFoldersLocal] = useState<DriveFolder[] | null>(null);
+  const allFiles = flattenDriveFiles(driveFolders);
+
+  const favoriteFilesToRender = favoriteFiles
+    .map(r => allFiles.find(f => f.id === r.favUrl))
+    .filter(Boolean)
+    .map(f => ({ ...f, isFavorite: true })) as FileItem[];
+
 
   const handleRefresh = async () => {
     if (loading) return;           // 로딩 중 중복 클릭 방지
-    
+
     setLoading(true);
     try {
       const res = await fetchDriveFolders();
 
     } catch (err) {
-      console.error("드라이브 불러오기 실패", err);
+      // console.error("드라이브 불러오기 실패", err);
     } finally {
       setLoading(false);
     }
@@ -180,30 +186,83 @@ export default function ExplorerSidebar({
 
             )}
           </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto px-4">
-            <div className="space-y-2">
-              {currentSidebarFiles.map(file => (
-                <div
-                  key={file.id}
-                  className="group p-3 rounded-xl bg-background hover:bg-accent transition-all cursor-pointer border border-border"
-                  onClick={() => onFileSelect(file)}
-                >
-                  <div className="flex items-center space-x-3 gap-2">
-                    <span className="text-lg flex-shrink-0">{file.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {file.type} • {file.size}
-                      </p>
+        ) : activeTab === "recent" ? (
+          <div className="flex-1 overflow-y-auto pr-1">
+            {recentFiles.length === 0 ? (
+              <div className="text-center text-xs text-muted-foreground py-6">
+                최근 파일이 없습니다.
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {recentFiles.map((file, index) => (
+                  <div
+                    key={file.id ?? index}
+                    className="group flex items-center justify-between p-2 rounded-md hover:bg-accent cursor-pointer border border-border"
+                    onClick={() => {
+                      onFileSelect(file)
+                    }}
+                  >
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <span className="text-lg flex-shrink-0">{file.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {file.type} • {(file.size / 1024 / 1024).toFixed(1)}MB
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
+        ) : activeTab === "favorites" ? (
+          <div className="flex-1 overflow-y-auto pr-1">
+            {favoriteFilesToRender.length === 0 ? (
+              <div className="text-center text-xs text-muted-foreground py-6">
+                즐겨찾기가 없습니다.
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {favoriteFilesToRender.map((file, index) => (
+                  <div
+                    key={file.id ?? index}
+                    className="group flex items-center justify-between p-2 rounded-md hover:bg-accent cursor-pointer border border-border"
+                    onClick={() => {
+                      onFileSelect(file)
+                    }}
+                  >
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <span className="text-lg flex-shrink-0">{file.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {file.type} • {(file.size / 1024 / 1024).toFixed(1)}MB
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite?.(file.id);
+                      }}
+                    >
+                      <Star
+                        className={`w-4 h-4 ${file.isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground'}`}
+                      />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div></div>
         )}
       </div>
     </div>
-  );
-}
+  )
+};

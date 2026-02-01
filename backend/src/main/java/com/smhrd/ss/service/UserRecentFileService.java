@@ -1,5 +1,7 @@
 package com.smhrd.ss.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,9 +36,8 @@ public class UserRecentFileService {
 		return userRecentFileRepository.save(entity);
 	}
 
-	public UserRecentFileEntity recentFile(UserEntity entity){
-		
-		return userRecentFileRepository.findByUserIdx(entity.getUserIdx());
+	public List<UserRecentFileEntity> recentFile(UserEntity entity){
+		return userRecentFileRepository.findAllByUserIdx(entity.getUserIdx());
 	}
 
 }

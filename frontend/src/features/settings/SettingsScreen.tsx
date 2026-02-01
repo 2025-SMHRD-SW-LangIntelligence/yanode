@@ -40,6 +40,7 @@ import {
   Loader2
 } from 'lucide-react';
 import ChangePasswordModal from "./ChangePassword";
+import { useGlobal } from '../../types/GlobalContext';
 
 
 
@@ -82,6 +83,7 @@ export function SettingsScreen({
     level: '-',
     lastPwChgAt: '-'
   });
+  const { globalValue } = useGlobal();
   const [isEditing, setIsEditing] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [editingApiKey, setEditingApiKey] = useState<{ id: string; name: string; key: string } | null>(null);
@@ -115,7 +117,7 @@ export function SettingsScreen({
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://localhost:8090/api/auth/logout", {
+      const res = await fetch(`${globalValue}/api/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -126,7 +128,7 @@ export function SettingsScreen({
 
       onLogout();
     } catch (e) {
-      console.error("로그아웃 중 오류 발생", e);
+      // console.error("로그아웃 중 오류 발생", e);
       alert("로그아웃 실패. 다시 시도해주세요.");
     }
   };
@@ -149,7 +151,7 @@ export function SettingsScreen({
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch('http://localhost:8090/api/auth/me', {
+        const res = await fetch(`${globalValue}/api/auth/me`, {
           method: 'GET',
           credentials: 'include'
         });
@@ -166,7 +168,7 @@ export function SettingsScreen({
           });
         }
       } catch (err) {
-        console.error('유저 정보 불러오기 실패', err);
+        // console.error('유저 정보 불러오기 실패', err);
       }
     };
 
@@ -175,7 +177,7 @@ export function SettingsScreen({
 
   const fetchUserApis = async () => {
     try {
-      const res = await fetch('http://localhost:8090/api/auth/myApis', {
+      const res = await fetch(`${globalValue}/api/auth/myApis`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -184,11 +186,11 @@ export function SettingsScreen({
         setApiKeys(data);
         onApiKeysChange?.(data);
       } else {
-        console.error('API 키 로드 실패', data);
+        // console.error('API 키 로드 실패', data);
         navigate('/login');
       }
     } catch (err) {
-      console.error('API 키 불러오기 오류', err);
+      // console.error('API 키 불러오기 오류', err);
     }
   };
 
@@ -200,7 +202,7 @@ export function SettingsScreen({
   const handleSaveProfile = async () => {
     setIsEditing(false);
     try {
-      const res = await fetch('http://localhost:8090/api/auth/update', {
+      const res = await fetch(`${globalValue}/api/auth/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -216,7 +218,7 @@ export function SettingsScreen({
         alert(result.message || '수정 실패');
       }
     } catch (err) {
-      console.error('프로필 수정 오류', err);
+      // console.error('프로필 수정 오류', err);
     }
   };
 
@@ -235,7 +237,7 @@ export function SettingsScreen({
     if (!confirm('정말 이 API 키를 삭제하시겠습니까?')) return;
 
     try {
-      const res = await fetch(`http://localhost:8090/api/auth/deleteApi?apiIdx=${apiIdx}`, {
+      const res = await fetch(`${globalValue}/api/auth/deleteApi?apiIdx=${apiIdx}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -250,7 +252,7 @@ export function SettingsScreen({
         alert(result.message || 'API 키 삭제 실패');
       }
     } catch (err) {
-      console.error(err);
+      // console.error(err);
       alert('API 키 삭제 중 오류가 발생했습니다.');
     }
   };
@@ -259,7 +261,7 @@ export function SettingsScreen({
     // 진행 시작 표시
     setConnecting(prev => ({ ...prev, [apiIdx]: { type: 'connect', start: Date.now() } }));
     try {
-      const res = await fetch(`http://localhost:8090/api/dooray/driveConnect?apiIdx=${apiIdx}`, {
+      const res = await fetch(`${globalValue}/api/dooray/driveConnect?apiIdx=${apiIdx}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
@@ -277,9 +279,7 @@ export function SettingsScreen({
       if (savedFolders.length) {
         setDriveFolders(savedFolders);
         selectAllFolders();
-        console.log("a")
       } else {
-        console.log("b")
         await fetchDriveFolders();
         selectAllFolders();
       }
@@ -299,7 +299,7 @@ export function SettingsScreen({
   const onDisconnectApiKey = async (apiIdx: number) => {
     setConnecting(prev => ({ ...prev, [apiIdx]: { type: 'disconnect', start: Date.now() } }));
     try {
-      await fetch(`http://localhost:8090/api/dooray/driveDisconnect?apiIdx=${encodeURIComponent(apiIdx)}`, {
+      await fetch(`${globalValue}/api/dooray/driveDisconnect?apiIdx=${encodeURIComponent(apiIdx)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
@@ -314,7 +314,7 @@ export function SettingsScreen({
       setDriveFolders([]);
       localStorage.removeItem('drive:folders');
     } catch (err) {
-      console.error(err);
+      // console.error(err);
       alert('해제 실패!');
     } finally {
       setConnecting(prev => {
@@ -328,7 +328,7 @@ export function SettingsScreen({
     let userInput = prompt(`회원 탈퇴 하시겠습니까? \n (${profileData.name}/탈퇴한다)`, `${profileData.name}/탈퇴한다`)
     if (userInput === `${profileData.name}/탈퇴한다`) {
       try {
-        const res = await fetch('http://localhost:8090/api/auth/userDelete', {
+        const res = await fetch(`${globalValue}/api/auth/userDelete`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -338,7 +338,6 @@ export function SettingsScreen({
         alert("성공적으로 탈퇴되었습니다.");
         navigate('/login');
       } catch (err) {
-        console.log("실패")
       }
     }
   }
@@ -603,7 +602,13 @@ export function SettingsScreen({
                           </div>
                         </div>
                         <Button
-                          onClick={() => setShowPasswordModal(true)}
+                          onClick={() => {
+                            if(profileData.oAuth==0){
+                              setShowPasswordModal(true)
+                            } else {
+                              alert("일반 사용자만 사용 가능합니다.")
+                            }
+                          }}
                           className="glass hover:bg-accent text-foreground font-medium rounded-xl border-0"
                         >
                           변경

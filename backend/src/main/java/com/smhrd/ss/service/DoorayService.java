@@ -9,11 +9,16 @@ import java.util.Set;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smhrd.ss.resource.MultipartInputStreamFileResource;
 
 @Service
 public class DoorayService {
@@ -174,4 +179,36 @@ public class DoorayService {
 		}
 		return "-";
 	}
+	
+	public Map<String, Object> getFileMeta(String apiToken, String fileId) throws Exception {
+        String url = DOORAY_BASE_URL + "/drive/v1/files/" + fileId + "?media=meta";
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "dooray-api " + apiToken);
+        HttpEntity<String> entity = new HttpEntity<>(null, headers);
+
+        ResponseEntity<String> res = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> map = mapper.readValue(res.getBody(), Map.class);
+
+        if ((Boolean)((Map<String, Object>)map.get("header")).get("isSuccessful")) {
+            return (Map<String, Object>) map.get("result");
+        } else {
+            throw new Exception("메타 정보 가져오기 실패");
+        }
+    }
+
+    // 파일 다운로드
+    public byte[] downloadRawFile(String apiToken, String driveId, String fileId) throws Exception {
+        String url = DOORAY_BASE_URL + "/drive/v1/drives/" + driveId + "/files/" + fileId + "?media=raw";
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "dooray-api " + apiToken);
+        HttpEntity<String> entity = new HttpEntity<>(null, headers);
+
+        ResponseEntity<byte[]> res = restTemplate.exchange(url, HttpMethod.GET, entity, byte[].class);
+        if (res.getStatusCode().is2xxSuccessful()) {
+            return res.getBody();
+        } else {
+            throw new Exception("파일 다운로드 실패");
+        }
+    }
 }

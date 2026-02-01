@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '../../components/ui/button';
-import { 
-  X, 
-  Download, 
-  ExternalLink, 
-  Share2, 
+import {
+  X,
+  Download,
+  ExternalLink,
+  Share2,
   Star,
   MoreVertical,
   FileText,
@@ -18,53 +18,131 @@ import {
   Tag,
   MessageSquare
 } from 'lucide-react';
-import type { FileItem} from '../../types';
+import type { FileItem } from '../../types';
 import { findUser } from './utils/findUser';
+import { fetchFavoriteFiles } from './utils/fetchFavoriteFiles';
+import { useGlobal } from '../../types/GlobalContext';
 
 interface FilePreviewDrawerProps {
   file: FileItem;
   isOpen: boolean;
   onClose: () => void;
   onToggleFavorite: (fileId: string) => void;
-  zIndex? : number;
+  zIndex?: number;
+  onRecentFileSaved?: (fileId: string) => void;
 }
 
-export function FilePreviewDrawer({ 
-  file, 
-  isOpen, 
-  onClose, 
-  onToggleFavorite ,
+export function FilePreviewDrawer({
+  file,
+  isOpen,
+  onClose,
+  onToggleFavorite,
   zIndex = 100,
+  onRecentFileSaved,
 }: FilePreviewDrawerProps) {
+  const { globalValue } = useGlobal();
   const [showActions, setShowActions] = useState(false);
   const [creator, setCreator] = useState<string>('로딩중...');
   const [lastUpdater, setLastUpdater] = useState<string>('로딩중...');
+  const [isFavorite, setIsFavorite] = useState<boolean>(file.isFavorite ?? false);
+  const [hasPreview, setHasPreview] = useState(true);
 
   if (!isOpen) return null;
 
-  const handleToggleFavorite = () => {
-    onToggleFavorite(file.id);
+  const saveRecentFile = async (fileId: string) => {
+    try {
+      const res = await fetch(`${globalValue}/api/recentFile/save?fileId=${fileId}`, {
+        method: "POST",
+        credentials: "include"
+      })
+      if (onRecentFileSaved) {
+        onRecentFileSaved(fileId);
+      }
+    } catch (error) {
+      // console.error(error);
+      alert("에러");
+    }
   };
 
+  useEffect(() => {
+    setIsFavorite(file.isFavorite ?? false);
+  }, [file]);
+
+  const handleToggleFavorite = async () => {
+    try {
+      const endpoint = isFavorite ? "off" : "on";
+      const res = await fetch(`${globalValue}/api/fav/${endpoint}?favUrl=${file.id}`, {
+        method: "POST",
+        credentials: "include"
+      });
+      if (!res.ok) {
+        alert("즐겨찾기 저장 실패");
+        return;
+      }
+      setIsFavorite(!isFavorite);
+      onToggleFavorite(file.id);
+    } catch (e) {
+      alert("에러 발생")
+    }
+  };
+
+  const fetchFavorite = async () => {
+    try {
+      const res = await fetch(`${globalValue}/api/fav/exist?favUrl=${file.id}`, {
+        method: "POST",
+        credentials: "include"
+      });
+      if (res.ok) {
+        setIsFavorite(await res.json());
+      }
+    } catch (e) {
+      alert("에러 발생")
+    }
+  }
+  useEffect(() => {
+    fetchFavorite();
+  }, [])
+
   const fileActions = [
-    { icon: <Download className="w-4 h-4" />, label: '다운로드', action: () => {} },
-    { icon: <ExternalLink className="w-4 h-4" />, label: '새 탭에서 열기', action: () => {} },
-    { icon: <Share2 className="w-4 h-4" />, label: '공유', action: () => {} },
-    { icon: <Copy className="w-4 h-4" />, label: '링크 복사', action: () => {} },
-    { icon: <Edit className="w-4 h-4" />, label: '편집', action: () => {} },
-    { icon: <Trash2 className="w-4 h-4" />, label: '삭제', action: () => {}, danger: true }
+    {
+      icon: <Download className="w-4 h-4" />, label: '다운로드', action: () => {
+        saveRecentFile(file.id);
+        downloadFile();
+      }
+    },
+    {
+      icon: <ExternalLink className="w-4 h-4" />, label: '열기', action: () => {
+        saveRecentFile(file.id)
+        window.open(`https://smhrd.dooray.com/preview-pages/drives/${file.id}`)
+      }
+    },
+    {
+      icon: <Copy className="w-4 h-4" />, label: '공유', action: () => {
+        saveRecentFile(file.id)
+        copyLink();
+      }
+    },
   ];
 
-  const relatedFiles = [
-    { name: '관련 문서 1.docx', type: 'Word', modified: '2024-03-10', icon: '📄' },
-    { name: '관련 문서 2.pdf', type: 'PDF', modified: '2024-03-08', icon: '📋' },
-    { name: '참고 자료.xlsx', type: 'Excel', modified: '2024-03-05', icon: '📊' }
-  ];
+  const copyLink = () => {
+    const fileLink = `https://smhrd.dooray.com/preview-pages/drives/${file.id}`;
+    navigator.clipboard.writeText(fileLink)
+      .then(() => {
+        alert("링크가 복사되었습니다!");
+      })
+      .catch(() => {
+        alert("복사 실패");
+      });
+  }
+
+  const downloadFile = () => {
+    window.open(`https://smhrd.dooray.com/drive/v1/downloads/${file.driveId}/${file.id}?disposition=attachment`);
+  }
 
   useEffect(() => {
     const loadUsers = async () => {
-      const creatorName = await findUser(file.creator);
-      const updaterName = await findUser(file.lastUpdater);
+      const creatorName = await findUser(file.creator, globalValue);
+      const updaterName = await findUser(file.lastUpdater, globalValue);
       setCreator(creatorName);
       setLastUpdater(updaterName);
     };
@@ -73,13 +151,13 @@ export function FilePreviewDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex pointer-events-auto"
-    style={{ zIndex }}>
+      style={{ zIndex }}>
       {/* 배경 오버레이 */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* 드로어 콘텐츠 */}
       <div className="relative ml-auto w-full max-w-2xl h-full bg-background border-l border-border overflow-hidden animate-slide-in shadow-clean-lg">
         <div className="flex flex-col h-full">
@@ -96,21 +174,23 @@ export function FilePreviewDrawer({
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2">
+              {/* 즐겨찾기 */}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleToggleFavorite}
-                className={`w-10 h-10 p-0 rounded-xl transition-all ${
-                  file.isFavorite 
-                    ? 'text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20' 
-                    : 'text-muted-foreground hover:bg-accent hover:text-yellow-500'
-                }`}
+                onClick={() => {
+                  handleToggleFavorite();
+                }}
+                className={`w-10 h-10 p-0 rounded-xl transition-all ${isFavorite
+                  ? 'text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20'
+                  : 'text-muted-foreground hover:bg-accent hover:text-yellow-500'
+                  }`}
               >
-                <Star className={`w-5 h-5 ${file.isFavorite ? 'fill-current' : ''}`} />
+                <Star className={`w-5 h-5 ${isFavorite ? 'fill-yellow-500' : ''}`} />
               </Button>
-              
+
               <div className="relative">
                 <Button
                   variant="ghost"
@@ -120,7 +200,7 @@ export function FilePreviewDrawer({
                 >
                   <MoreVertical className="w-5 h-5" />
                 </Button>
-                
+
                 {showActions && (
                   <div className="absolute right-0 top-12 w-48 bg-popover border border-border rounded-xl shadow-lg z-10">
                     <div className="p-2">
@@ -131,11 +211,10 @@ export function FilePreviewDrawer({
                             action.action();
                             setShowActions(false);
                           }}
-                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                            action.danger
-                              ? 'text-destructive hover:bg-destructive/10'
-                              : 'text-foreground hover:bg-accent'
-                          }`}
+                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${action.danger
+                            ? 'text-destructive hover:bg-destructive/10'
+                            : 'text-foreground hover:bg-accent'
+                            }`}
                         >
                           {action.icon}
                           <span className="text-sm">{action.label}</span>
@@ -145,7 +224,7 @@ export function FilePreviewDrawer({
                   </div>
                 )}
               </div>
-              
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -162,26 +241,67 @@ export function FilePreviewDrawer({
             <div className="p-6 space-y-8">
               {/* 파일 미리보기 */}
               <div className="bg-card rounded-xl p-8 border border-border text-center">
-                <div className="w-24 h-24 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-12 h-12 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  파일 미리보기
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  이 파일 형식의 미리보기를 지원하지 않습니다.
-                </p>
+                {file.driveId && file.id ? (
+                  <>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      파일 미리보기
+                    </h3>
+                    {hasPreview && (
+                      <img
+                        src={`https://smhrd.dooray.com/drive/v1/downloads/${file.driveId}/${file.id}/thumbnails/0/large`}
+                        className="mx-auto mb-4 rounded-lg max-h-64"
+                        onError={() => setHasPreview(false)}
+                      />
+                    )}
+                    {!hasPreview && (
+                      <>
+                        <div className="w-24 h-24 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
+                          <FileText className="w-12 h-12 text-white" />
+                        </div>
+                        <p className="text-muted-foreground mb-6">
+                          이 파일 형식의 미리보기를 지원하지 않습니다.
+                        </p>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* driveId나 id 자체가 없는 경우 */}
+                    <div className="w-24 h-24 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <FileText className="w-12 h-12 text-white" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      파일 미리보기
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      이 파일 형식의 미리보기를 지원하지 않습니다.
+                    </p>
+                  </>
+                )}
                 <div className="flex justify-center space-x-3">
-                  <Button className="bg-gradient-primary btn-glow text-white font-medium rounded-xl px-6 h-10 border-0">
+                  <Button
+                    className="bg-gradient-primary btn-glow text-white font-medium rounded-xl px-6 h-10 border-0"
+                    onClick={() => {
+                      saveRecentFile(file.id)
+                      downloadFile();
+                    }}>
                     <Download className="w-4 h-4 mr-2" />
                     다운로드
                   </Button>
-                  <Button variant="outline" className="font-medium rounded-xl px-6 h-10">
+                  <Button
+                    variant="outline"
+                    className="font-medium rounded-xl px-6 h-10"
+                    onClick={() => {
+                      saveRecentFile(file.id)
+                      window.open(`https://smhrd.dooray.com/preview-pages/drives/${file.id}`)
+                    }}>
                     <ExternalLink className="w-4 h-4 mr-2" />
                     열기
                   </Button>
                 </div>
               </div>
+
+
 
               {/* 파일 정보 */}
               <div className="space-y-4">
@@ -196,7 +316,7 @@ export function FilePreviewDrawer({
                           <p className="text-sm text-muted-foreground">{creator}</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center space-x-3">
                         <User className="w-5 h-5 text-muted-foreground" />
                         <div>
@@ -204,37 +324,35 @@ export function FilePreviewDrawer({
                           <p className="text-sm text-muted-foreground">{file.createdAt ? new Date(file.createdAt).toLocaleString() : '-'}</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center space-x-3">
-                        <Star className="w-5 h-5 text-muted-foreground" />
+                        <Star className={`w-5 h-5 mr-1 ${isFavorite ? 'fill-yellow-500 stroke-none' : ''}`} />
                         <div>
                           <p className="text-sm font-medium text-foreground">즐겨찾기 상태</p>
                           <div className="flex items-center space-x-2">
-                            <span className={`text-sm ${
-                              file.isFavorite 
-                                ? 'text-yellow-500' 
-                                : 'text-muted-foreground'
-                            }`}>
-                              {file.isFavorite ? '즐겨찾기에 추가됨' : '즐겨찾기에 없음'}
+                            <span className={`text-sm ${isFavorite
+                              ? 'text-yellow-500'
+                              : 'text-muted-foreground'
+                              }`}>
+                              {isFavorite ? '즐겨찾기에 추가됨' : '즐겨찾기에 없음'}
                             </span>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={handleToggleFavorite}
-                              className={`h-6 px-2 text-xs rounded-md transition-all ${
-                                file.isFavorite 
-                                  ? 'text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20' 
-                                  : 'text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10'
-                              }`}
+                              className={`h-6 px-2 text-xs rounded-md transition-all ${isFavorite
+                                ? 'text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20'
+                                : 'text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10'
+                                }`}
                             >
-                              <Star className={`w-3 h-3 mr-1 ${file.isFavorite ? 'fill-current' : ''}`} />
-                              {file.isFavorite ? '제거' : '추가'}
+                              <Star className={`w-3 h-3 mr-1 ${isFavorite ? 'fill-yellow-500' : ''}`} />
+                              {isFavorite ? '제거' : '추가'}
                             </Button>
                           </div>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-4">
                       <div className="flex items-center space-x-3">
                         <Tag className="w-5 h-5 text-muted-foreground" />
@@ -243,7 +361,7 @@ export function FilePreviewDrawer({
                           <p className="text-sm text-muted-foreground">{lastUpdater}</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center space-x-3">
                         <Eye className="w-5 h-5 text-muted-foreground" />
                         <div>
@@ -251,7 +369,7 @@ export function FilePreviewDrawer({
                           <p className="text-sm text-muted-foreground">{file.updatedAt ? new Date(file.updatedAt).toLocaleString() : '-'}</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center space-x-3">
                         <Clock className="w-5 h-5 text-muted-foreground" />
                         <div>
@@ -270,29 +388,35 @@ export function FilePreviewDrawer({
           <div className="border-t border-border p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Button 
+                <Button
                   variant="outline"
                   onClick={handleToggleFavorite}
-                  className={`font-medium rounded-xl h-10 px-4 transition-all ${
-                    file.isFavorite 
-                      ? 'text-yellow-500 border-yellow-500/30 bg-yellow-500/10 hover:bg-yellow-500/20' 
-                      : 'hover:text-yellow-500 hover:border-yellow-500/30'
-                  }`}
+                  className={`font-medium rounded-xl h-10 px-4 transition-all ${isFavorite
+                    ? 'text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20'
+                    : 'text-muted-foreground hover:bg-accent hover:text-yellow-500'
+                    }`}
                 >
-                  <Star className={`w-4 h-4 mr-2 ${file.isFavorite ? 'fill-current' : ''}`} />
-                  {file.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                  <Star className={`w-4 h-4 mr-2 ${isFavorite ? 'fill-yellow-500' : ''}`} />
+                  {isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
                 </Button>
-                <Button variant="outline" className="font-medium rounded-xl h-10 px-4">
+                <Button
+                  variant="outline"
+                  className="font-medium rounded-xl h-10 px-4"
+                  onClick={() => {
+                    saveRecentFile(file.id)
+                    copyLink();
+                  }}>
                   <Share2 className="w-4 h-4 mr-2" />
                   공유
                 </Button>
-                <Button variant="outline" className="font-medium rounded-xl h-10 px-4">
-                  <Copy className="w-4 h-4 mr-2" />
-                  링크
-                </Button>
               </div>
-              
-              <Button className="bg-gradient-primary btn-glow text-white font-medium rounded-xl h-10 px-6 border-0">
+
+              <Button
+                className="bg-gradient-primary btn-glow text-white font-medium rounded-xl h-10 px-6 border-0"
+                onClick={() => {
+                  saveRecentFile(file.id)
+                  downloadFile();
+                }}>
                 <Download className="w-4 h-4 mr-2" />
                 다운로드
               </Button>

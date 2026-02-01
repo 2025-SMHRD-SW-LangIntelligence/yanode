@@ -136,9 +136,28 @@ public class UserController {
 	
 	// 비밀번호 변경
 	@PostMapping("/chgPw")
-	public void changePassword(@RequestParam("pw") String pw, HttpSession session) {
-		UserEntity user = (UserEntity) session.getAttribute("user");
-		user.getUserIdx();
+	public ResponseEntity<Map<String, String>> changePassword(@RequestParam String pw, HttpSession session) {
+		UserEntity sessionUser = (UserEntity) session.getAttribute("user");
+
+	    if (sessionUser == null) {
+	        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+	                .body(Collections.singletonMap("message", "로그인이 필요합니다."));
+	    }
+
+	    // 세션에 있는 사용자 ID로 DB의 사용자 가져오기
+	    UserEntity user = userService.userInfo(sessionUser);
+	    if (user == null) {
+	        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+	                .body(Collections.singletonMap("message", "사용자를 찾을 수 없습니다."));
+	    }
+	    
+		user.setPassword(pw);
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		user.setLastPwChgAt(now);
+		
+		userService.save(user);
+		session.setAttribute("user", user);
+		return ResponseEntity.ok(Collections.singletonMap("message", "비밀번호가 변경되었습니다."));
 	}
 	
 	// 로그아웃
